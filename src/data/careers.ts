@@ -1,0 +1,173 @@
+import type { DimensionKey } from './dimensions';
+
+export interface CareerFamily {
+  id: string;
+  name: string;
+  emoji: string;
+  tagline: string;
+  roles: string[];
+  vector: Partial<Record<DimensionKey, number>>;
+}
+
+export const CAREER_FAMILIES: CareerFamily[] = [
+  {
+    id: 'research-discovery',
+    name: 'Research & Discovery',
+    emoji: '🔬',
+    tagline: 'Your happiest hours are spent chasing the truth no one has found yet.',
+    roles: ['Research Scientist', 'Data Analyst', 'Historian', 'Investigative Journalist'],
+    vector: { openness: 85, conscientiousness: 80, epistemology: -60, selfDirection: 75, achievement: 70, stimulation: 65 },
+  },
+  {
+    id: 'building-engineering',
+    name: 'Building & Engineering',
+    emoji: '⚙️',
+    tagline: 'You make real things that do real things — and you want them to work perfectly.',
+    roles: ['Software Engineer', 'Civil Engineer', 'Architect', 'Product Manager'],
+    vector: { conscientiousness: 85, openness: 65, reductionHolism: 55, orderChaos: 70, achievement: 80, selfDirection: 70 },
+  },
+  {
+    id: 'care-healing',
+    name: 'Care & Healing',
+    emoji: '🏥',
+    tagline: 'You feel most alive when you\'re reducing someone else\'s suffering.',
+    roles: ['Doctor', 'Nurse', 'Therapist', 'Social Worker', 'Veterinarian'],
+    vector: { care: 90, agreeableness: 85, benevolence: 80, conscientiousness: 70, universalism: 65 },
+  },
+  {
+    id: 'persuasion-deals',
+    name: 'Persuasion & Deals',
+    emoji: '🤝',
+    tagline: 'You read rooms, close gaps, and leave everyone thinking it was their idea.',
+    roles: ['Lawyer', 'Sales Director', 'Diplomat', 'Negotiator', 'Marketing Lead'],
+    vector: { extraversion: 80, achievement: 75, power: 60, agreeableness: 55, openness: 65, conscientiousness: 60 },
+  },
+  {
+    id: 'craft-aesthetics',
+    name: 'Craft & Aesthetics',
+    emoji: '🎨',
+    tagline: 'Beauty, form, and meaning through making — whatever the medium.',
+    roles: ['Designer', 'Musician', 'Visual Artist', 'Filmmaker', 'Writer'],
+    vector: { openness: 90, selfDirection: 85, conscientiousness: 55, hedonism: 60, stimulation: 70, reductionHolism: -20 },
+  },
+  {
+    id: 'systems-operations',
+    name: 'Systems & Operations',
+    emoji: '📊',
+    tagline: 'Complex organisations run on people like you who see the whole chessboard.',
+    roles: ['Operations Manager', 'Logistics Director', 'Policy Analyst', 'Finance Officer'],
+    vector: { conscientiousness: 90, orderChaos: 80, reductionHolism: 65, authority: 55, achievement: 70, security: 60 },
+  },
+  {
+    id: 'frontier-exploration',
+    name: 'Frontier & Exploration',
+    emoji: '🧭',
+    tagline: 'The next horizon is always more interesting than the current one.',
+    roles: ['Entrepreneur', 'Field Researcher', 'Test Pilot', 'Wilderness Guide', 'Deep-Sea Biologist'],
+    vector: { stimulation: 90, openness: 85, achievement: 75, security: 15, conscientiousness: 50, selfDirection: 90, orderChaos: -40 },
+  },
+  {
+    id: 'stewardship-public-service',
+    name: 'Stewardship & Public Service',
+    emoji: '🏛️',
+    tagline: 'You believe institutions matter and you want to make them work for everyone.',
+    roles: ['Civil Servant', 'Elected Official', 'Non-profit Director', 'Diplomat', 'Urban Planner'],
+    vector: { benevolence: 80, universalism: 75, conscientiousness: 75, fairness: 80, authority: 50, loyalty: 60, individualCollective: -40 },
+  },
+  {
+    id: 'teaching-mentoring',
+    name: 'Teaching & Mentoring',
+    emoji: '📚',
+    tagline: 'Nothing satisfies you like watching someone understand something for the first time.',
+    roles: ['Teacher', 'Professor', 'Coach', 'Curriculum Designer', 'Learning & Development Lead'],
+    vector: { benevolence: 85, care: 75, openness: 75, agreeableness: 70, extraversion: 60, conscientiousness: 65 },
+  },
+  {
+    id: 'strategy-leadership',
+    name: 'Strategy & Leadership',
+    emoji: '♟️',
+    tagline: 'You\'re at your best when the stakes are high and the map is incomplete.',
+    roles: ['CEO', 'Management Consultant', 'Military Officer', 'Investment Director'],
+    vector: { achievement: 90, power: 75, conscientiousness: 75, openness: 65, extraversion: 70, selfDirection: 80 },
+  },
+  {
+    id: 'law-justice',
+    name: 'Law & Justice',
+    emoji: '⚖️',
+    tagline: 'Rules and rights are not abstractions — they\'re the architecture of fairness.',
+    roles: ['Barrister / Trial Lawyer', 'Judge', 'Human Rights Advocate', 'Compliance Officer'],
+    vector: { fairness: 90, conscientiousness: 80, moralRealism: 55, authority: 55, ethicsFramework: 50, orderChaos: 65 },
+  },
+  {
+    id: 'communication-storytelling',
+    name: 'Communication & Storytelling',
+    emoji: '📣',
+    tagline: 'You turn complexity into clarity and facts into feeling.',
+    roles: ['Journalist', 'Documentary Filmmaker', 'PR Director', 'Podcast Host', 'Brand Strategist'],
+    vector: { extraversion: 75, openness: 80, selfDirection: 70, achievement: 60, agreeableness: 50, stimulation: 65 },
+  },
+  {
+    id: 'philosophy-ethics',
+    name: 'Philosophy & Ethics',
+    emoji: '🧠',
+    tagline: 'The questions that have no easy answers are the only ones worth asking.',
+    roles: ['Philosopher', 'Ethicist', 'Theologian', 'Think-Tank Researcher', 'Bioethics Consultant'],
+    vector: { openness: 90, moralRealism: 50, epistemology: 20, conscientiousness: 65, selfDirection: 85, universalism: 60 },
+  },
+  {
+    id: 'nature-environment',
+    name: 'Nature & Environment',
+    emoji: '🌿',
+    tagline: 'The living world calls to you, and you\'ve answered.',
+    roles: ['Ecologist', 'Conservation Biologist', 'Environmental Lawyer', 'Sustainability Director'],
+    vector: { universalism: 90, care: 80, openness: 75, conscientiousness: 65, authority: 30, reductionHolism: -10, economicAxis: -30 },
+  },
+  {
+    id: 'entrepreneurship-innovation',
+    name: 'Entrepreneurship & Innovation',
+    emoji: '🚀',
+    tagline: 'You see problems as invitations and build things to solve them.',
+    roles: ['Startup Founder', 'Product Designer', 'Innovation Director', 'Venture Capitalist'],
+    vector: { achievement: 90, stimulation: 85, selfDirection: 90, openness: 85, security: 10, conscientiousness: 60, power: 55 },
+  },
+  {
+    id: 'welfare-community',
+    name: 'Community & Welfare',
+    emoji: '🏘️',
+    tagline: 'A community is only as strong as its most vulnerable member.',
+    roles: ['Community Organiser', 'Housing Caseworker', 'Youth Worker', 'Charity Lead'],
+    vector: { care: 90, fairness: 85, benevolence: 90, universalism: 80, extraversion: 60, economicAxis: -60, individualCollective: -60 },
+  },
+  {
+    id: 'sport-performance',
+    name: 'Sport & Performance',
+    emoji: '🏆',
+    tagline: 'You push limits — yours and others\' — and you thrive under pressure.',
+    roles: ['Professional Athlete', 'Sports Coach', 'Performance Psychologist', 'Personal Trainer'],
+    vector: { achievement: 90, conscientiousness: 80, stimulation: 75, extraversion: 70, hedonism: 50, freeWill: 60 },
+  },
+  {
+    id: 'spirituality-philosophy',
+    name: 'Spirituality & Inner Work',
+    emoji: '🕯️',
+    tagline: 'The interior life is as real as the exterior — maybe more so.',
+    roles: ['Clergy / Minister', 'Meditation Teacher', 'Jungian Analyst', 'Spiritual Director'],
+    vector: { metaphysics: 65, sanctity: 70, tradition: 60, openness: 70, extraversion: 40, humanNature: 50, care: 70 },
+  },
+  {
+    id: 'finance-economics',
+    name: 'Finance & Economics',
+    emoji: '📈',
+    tagline: 'You understand that numbers are stories about real human decisions.',
+    roles: ['Economist', 'Fund Manager', 'Financial Analyst', 'Actuary'],
+    vector: { conscientiousness: 80, achievement: 80, reductionHolism: 65, openness: 60, power: 55, economicAxis: 30, orderChaos: 65 },
+  },
+  {
+    id: 'tech-digital',
+    name: 'Technology & Digital',
+    emoji: '💻',
+    tagline: 'You live in the future and bring bits of it back to the present.',
+    roles: ['Machine Learning Engineer', 'UX Researcher', 'Security Analyst', 'CTO'],
+    vector: { openness: 80, conscientiousness: 75, reductionHolism: 65, selfDirection: 80, stimulation: 70, achievement: 75 },
+  },
+];
