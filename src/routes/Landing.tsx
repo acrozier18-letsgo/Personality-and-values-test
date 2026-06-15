@@ -1,15 +1,19 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Disclaimer } from '../components/Disclaimer';
+import { ZodiacBadge } from '../components/ZodiacBadge';
 import { QUESTIONS } from '../data/questions';
+import { getZodiacFromDate } from '../data/zodiac';
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { answers, reset } = useStore();
+  const { answers, reset, birthdate, setBirthdate } = useStore();
 
   const answered = Object.values(answers).filter(a => a === 'yes' || a === 'no').length;
   const hasProgress = answered > 0;
   const pct = Math.round((answered / QUESTIONS.length) * 100);
+
+  const zodiac = birthdate ? getZodiacFromDate(birthdate) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950 flex flex-col items-center justify-center px-4 py-12">
@@ -26,12 +30,45 @@ export default function Landing() {
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur rounded-2xl border border-gray-200 dark:border-gray-800 p-6 text-left space-y-3">
           <h2 className="font-semibold text-gray-800 dark:text-gray-100">What to expect</h2>
           <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-            <li>✦ 200 yes/no questions spanning personality, values, ethics, politics & philosophy</li>
+            <li>✦ 200 yes/no questions spanning personality, values, ethics, politics &amp; philosophy</li>
             <li>✦ Answer as many or few as you like — results improve with more answers</li>
             <li>✦ Your progress is saved automatically in your browser</li>
             <li>✦ Finish anytime and view your persona — refine later</li>
             <li>✦ No account needed. Your data never leaves your device.</li>
           </ul>
+        </div>
+
+        {/* Birthday + zodiac */}
+        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur rounded-2xl border border-gray-200 dark:border-gray-800 p-6 text-left">
+          <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">Your zodiac sign</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Optional — adds your sign to your persona profile and enables the AI portrait feature.
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <label htmlFor="birthdate" className="block text-xs text-gray-500 mb-1">Date of birth</label>
+              <input
+                id="birthdate"
+                type="date"
+                value={birthdate}
+                onChange={e => setBirthdate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
+              />
+            </div>
+            {zodiac && (
+              <div className="flex flex-col items-start gap-1 shrink-0">
+                <span className="text-xs text-gray-400">Your sign</span>
+                <ZodiacBadge sign={zodiac} />
+              </div>
+            )}
+          </div>
+          {zodiac && (
+            <p className="text-xs text-gray-400 mt-3 italic">
+              {zodiac.symbol} {zodiac.name} — {zodiac.element} · {zodiac.modality} · ruled by {zodiac.rulingPlanet}
+              &nbsp;· traits: {zodiac.traits.join(', ')}
+            </p>
+          )}
         </div>
 
         <Disclaimer />

@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore';
 import { QUESTIONS } from '../data/questions';
 import { scoreAnswers } from '../engine/scoring';
 import { synthesize } from '../engine/synthesis';
+import { getZodiacFromDate } from '../data/zodiac';
 import { PersonaHeader } from '../components/PersonaHeader';
 import { RadarPanel } from '../components/RadarPanel';
 import { PoliticalCompass } from '../components/PoliticalCompass';
@@ -12,17 +13,20 @@ import { FigureMatchCard } from '../components/FigureMatchCard';
 import { CareerPanel } from '../components/CareerPanel';
 import { CountryPanel } from '../components/CountryPanel';
 import { ShareCard } from '../components/ShareCard';
+import { ZodiacBadge } from '../components/ZodiacBadge';
+import { LLMPersona } from '../components/LLMPersona';
 import { Disclaimer } from '../components/Disclaimer';
 import { toImage } from '../export/toImage';
 import { sharePersona } from '../export/share';
 
 export default function Results() {
   const navigate = useNavigate();
-  const { answers } = useStore();
+  const { answers, birthdate, llmPersona, setLLMPersona } = useStore();
   const shareCardRef = useRef<HTMLDivElement>(null);
 
   const result  = useMemo(() => scoreAnswers(answers, QUESTIONS), [answers]);
   const persona = useMemo(() => synthesize(result), [result]);
+  const zodiac  = useMemo(() => birthdate ? getZodiacFromDate(birthdate) : null, [birthdate]);
 
   const answered = Object.values(answers).filter(a => a === 'yes' || a === 'no').length;
 
@@ -60,10 +64,10 @@ export default function Results() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Hidden share card rendered off-screen for capture */}
       <div className="fixed -top-[2000px] left-0 pointer-events-none" aria-hidden>
-        <ShareCard ref={shareCardRef} persona={persona} />
+        <ShareCard ref={shareCardRef} persona={persona} zodiac={zodiac} llmPersona={llmPersona} />
       </div>
 
-      {/* Sticky export bar */}
+      {/* Sticky top bar */}
       <div className="sticky top-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-2">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 flex-wrap">
           <button
@@ -72,7 +76,8 @@ export default function Results() {
           >
             ← Continue quiz
           </button>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {zodiac && <ZodiacBadge sign={zodiac} />}
             <button
               onClick={handleShare}
               className="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium transition-colors"
@@ -90,12 +95,43 @@ export default function Results() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-10">
-        <PersonaHeader persona={persona} />
+        <PersonaHeader persona={persona} zodiac={zodiac} />
 
         {/* Archetype description */}
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
           <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{persona.archetype.description}</p>
         </div>
+
+        {/* AI Portrait — shown when zodiac is set; otherwise prompt to add birthday */}
+        {zodiac ? (
+          <LLMPersona
+            scores={result.scores}
+            zodiac={zodiac}
+            archetype={persona.archetype}
+            identitySentence={persona.identitySentence}
+            stored={llmPersona}
+            onResult={setLLMPersona}
+          />
+        ) : (
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-violet-200 dark:border-violet-800 p-6 text-center">
+            <div className="text-3xl mb-2">✨</div>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Add your date of birth on the{' '}
+              <button onClick={() => navigate('/')} className="text-violet-600 dark:text-violet-400 hover:underline">
+                home page
+              </button>{' '}
+              to unlock your AI-generated name and DALL-E portrait.
+            </p>
+          </div>
+        )}
+
+        {/* Zodiac full card */}
+        {zodiac && (
+          <section aria-label="Zodiac profile">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Your Zodiac Profile</h2>
+            <ZodiacBadge sign={zodiac} size="lg" />
+          </section>
+        )}
 
         <RadarPanel scores={result.scores} />
         <PoliticalCompass scores={result.scores} />
@@ -103,7 +139,9 @@ export default function Results() {
 
         {/* Historical figure matches */}
         <section aria-label="Historical figure matches">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Thinkers & Doers Who Share Your Tendencies</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+            Thinkers &amp; Doers Who Share Your Tendencies
+          </h2>
           <div className="space-y-4">
             {persona.figures.map((m, i) => (
               <FigureMatchCard key={m.figure.id} match={m} rank={i} />
@@ -114,7 +152,6 @@ export default function Results() {
         <CareerPanel careers={persona.careers} />
         <CountryPanel countries={persona.countries} />
 
-        {/* Time & Intro guidance */}
         {persona.timeRecommendations.length > 0 && (
           <section aria-label="How to spend your time">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">How to Spend Your Time</h2>
