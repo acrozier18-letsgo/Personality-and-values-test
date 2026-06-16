@@ -5,6 +5,33 @@ import { ZodiacBadge } from '../components/ZodiacBadge';
 import { QUESTIONS } from '../data/questions';
 import { getZodiacFromDate } from '../data/zodiac';
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function daysInMonth(month: number, year: number): number {
+  if (!month) return 31;
+  return new Date(year || 2000, month, 0).getDate();
+}
+
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: currentYear - 1919 }, (_, i) => currentYear - i);
+
+function parseParts(iso: string) {
+  if (!iso) return { month: 0, day: 0, year: 0 };
+  const [y, m, d] = iso.split('-').map(Number);
+  return { month: m ?? 0, day: d ?? 0, year: y ?? 0 };
+}
+
+function toISO(month: number, day: number, year: number): string {
+  if (!month || !day || !year) return '';
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+const selectClass =
+  'flex-1 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-400 appearance-none cursor-pointer';
+
 export default function Landing() {
   const navigate = useNavigate();
   const { answers, reset, birthdate, setBirthdate } = useStore();
@@ -13,7 +40,22 @@ export default function Landing() {
   const hasProgress = answered > 0;
   const pct = Math.round((answered / QUESTIONS.length) * 100);
 
+  const { month, day, year } = parseParts(birthdate);
   const zodiac = birthdate ? getZodiacFromDate(birthdate) : null;
+
+  function handlePart(part: 'month' | 'day' | 'year', value: number) {
+    const next = {
+      month: part === 'month' ? value : month,
+      day:   part === 'day'   ? value : day,
+      year:  part === 'year'  ? value : year,
+    };
+    // Clamp day if month/year changed and day is now out of range
+    const maxDay = daysInMonth(next.month, next.year);
+    if (next.day > maxDay) next.day = maxDay;
+    setBirthdate(toISO(next.month, next.day, next.year));
+  }
+
+  const dayCount = daysInMonth(month, year);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950 flex flex-col items-center justify-center px-4 py-12">
@@ -44,31 +86,71 @@ export default function Landing() {
           <p className="text-xs text-gray-400 mb-4">
             Optional — adds your sign to your persona profile and enables the AI portrait feature.
           </p>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <label htmlFor="birthdate" className="block text-xs text-gray-500 mb-1">Date of birth</label>
-              <input
-                id="birthdate"
-                type="date"
-                value={birthdate}
-                onChange={e => setBirthdate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
-              />
-            </div>
-            {zodiac && (
-              <div className="flex flex-col items-start gap-1 shrink-0">
-                <span className="text-xs text-gray-400">Your sign</span>
-                <ZodiacBadge sign={zodiac} />
+
+          <fieldset>
+            <legend className="text-xs text-gray-500 mb-2">Date of birth</legend>
+            <div className="flex gap-2">
+              {/* Month */}
+              <div className="relative flex-[2]">
+                <select
+                  value={month || ''}
+                  onChange={e => handlePart('month', Number(e.target.value))}
+                  className={selectClass}
+                  aria-label="Month"
+                >
+                  <option value="">Month</option>
+                  {MONTHS.map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
               </div>
-            )}
-          </div>
-          {zodiac && (
-            <p className="text-xs text-gray-400 mt-3 italic">
-              {zodiac.symbol} {zodiac.name} — {zodiac.element} · {zodiac.modality} · ruled by {zodiac.rulingPlanet}
-              &nbsp;· traits: {zodiac.traits.join(', ')}
-            </p>
-          )}
+
+              {/* Day */}
+              <div className="relative flex-1">
+                <select
+                  value={day || ''}
+                  onChange={e => handlePart('day', Number(e.target.value))}
+                  className={selectClass}
+                  aria-label="Day"
+                >
+                  <option value="">Day</option>
+                  {Array.from({ length: dayCount }, (_, i) => i + 1).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+              </div>
+
+              {/* Year */}
+              <div className="relative flex-[2]">
+                <select
+                  value={year || ''}
+                  onChange={e => handlePart('year', Number(e.target.value))}
+                  className={selectClass}
+                  aria-label="Year"
+                >
+                  <option value="">Year</option>
+                  {YEARS.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">▾</span>
+              </div>
+            </div>
+          </fieldset>
+
+          {zodiac ? (
+            <div className="mt-4 flex items-center gap-3 flex-wrap">
+              <ZodiacBadge sign={zodiac} />
+              <p className="text-xs text-gray-400 italic">
+                {zodiac.element} · {zodiac.modality} · ruled by {zodiac.rulingPlanet}
+                &nbsp;· {zodiac.traits.join(', ')}
+              </p>
+            </div>
+          ) : (month > 0 || day > 0 || year > 0) ? (
+            <p className="text-xs text-gray-400 mt-3">Select a complete date to see your sign.</p>
+          ) : null}
         </div>
 
         <Disclaimer />
