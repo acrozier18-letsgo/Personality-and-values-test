@@ -26,15 +26,15 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
     return () => window.removeEventListener('keydown', handleKey);
   }, [onAnswer, onNext, onPrev, hasNext, hasPrev]);
 
-  const baseBtn = 'flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseBtn = 'flex-1 py-4 px-4 rounded-xl font-semibold text-base transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2';
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 sm:p-8 w-full max-w-2xl mx-auto">
-      <p className="text-lg sm:text-xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed mb-8 text-center">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 sm:p-10 w-full max-w-2xl mx-auto">
+      <p className="text-xl sm:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed mb-14 text-center min-h-[6rem] flex items-center justify-center">
         {question.text}
       </p>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-8">
         <button
           onClick={() => onAnswer('yes')}
           aria-pressed={current === 'yes'}
