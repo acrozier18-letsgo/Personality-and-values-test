@@ -12,6 +12,23 @@ export interface LLMPersonaResult {
   imagePrompt: string;  // for transparency
 }
 
+export async function generateExample(apiKey: string, statement: string): Promise<string> {
+  const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+
+  const prompt = `Create a real life example in someone's day to day that could explain this statement: "${statement}"
+
+Respond with a short, concrete, relatable scenario (2–4 sentences) that illustrates the idea in everyday terms. Do not restate or define the statement — just tell the example. No preamble.`;
+
+  const resp = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.8,
+    max_tokens: 200,
+  });
+
+  return resp.choices[0].message.content?.trim() ?? 'Could not generate an example.';
+}
+
 function buildTopTraits(scores: Record<DimensionKey, DimensionScore>): string {
   const highlights: { label: string; description: string }[] = [];
 
