@@ -4,16 +4,21 @@ import { useStore } from '../store/useStore';
 import { QUESTIONS } from '../data/questions';
 import { REFINEMENT_QUESTIONS } from '../data/refinementQuestions';
 import { scoreAnswers } from '../engine/scoring';
+import type { Answer } from '../engine/scoring';
 import { synthesize } from '../engine/synthesis';
 import type { DimensionKey } from '../data/dimensions';
 import { DIMENSION_MAP } from '../data/dimensions';
 
 const LIKERT_LABELS = ['Strongly disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly agree'];
 
-function likertToWeight(val: number): number {
-  // 1→-2, 2→-1, 3→0, 4→+1, 5→+2
-  return val - 3;
-}
+// Refinement Likert value (1–5) → main-quiz Answer.
+const LIKERT_TO_ANSWER: Record<number, Answer> = {
+  1: 'strongly_disagree',
+  2: 'disagree',
+  3: 'no_opinion',
+  4: 'agree',
+  5: 'strongly_agree',
+};
 
 export default function Refine() {
   const navigate = useNavigate();
@@ -23,29 +28,21 @@ export default function Refine() {
 
   // Build synthetic answers that include refinement
   const refinedResult = useMemo(() => {
-    // Inject refinement answers as pseudo-questions alongside the base questions
+    // Inject refinement answers as pseudo-questions alongside the base questions.
+    // Weights keep their original magnitude; the answer's −2..+2 value carries the direction.
     const extraQuestions = REFINEMENT_QUESTIONS.map(rq => ({
       id: rq.id,
       text: rq.text,
       group: 'E' as const,
-      weights: Object.fromEntries(
-        Object.entries(rq.weights).map(([k, w]) => {
-          const mult = likertToWeight(refineAnswers[rq.id] ?? 3);
-          return [k, mult === 0 ? 0 : w! * Math.sign(mult)];
-        })
-      ) as Partial<Record<DimensionKey, number>>,
+      weights: rq.weights as Partial<Record<DimensionKey, number>>,
     }));
 
     const combinedQuestions = [...QUESTIONS, ...extraQuestions];
-    const combinedAnswers: Record<string, import('../engine/scoring').Answer> = { ...answers };
+    const combinedAnswers: Record<string, Answer> = { ...answers };
     REFINEMENT_QUESTIONS.forEach(rq => {
       const val = refineAnswers[rq.id];
-      if (val === undefined) {
-        combinedAnswers[rq.id] = 'skip';
-      } else {
-        const mult = likertToWeight(val);
-        combinedAnswers[rq.id] = mult > 0 ? 'yes' : mult < 0 ? 'no' : 'skip';
-      }
+      // Unanswered refinement questions are simply left out (contribute nothing).
+      if (val !== undefined) combinedAnswers[rq.id] = LIKERT_TO_ANSWER[val];
     });
 
     return scoreAnswers(combinedAnswers, combinedQuestions);
@@ -57,82 +54,76 @@ export default function Refine() {
   const answeredRefine = Object.keys(refineAnswers).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => navigate('/results')}
-            className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          >
-            ← Back to results
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Refine Your Portrait</h1>
-        </div>
+    <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 22px 70px' }}>
+      <div style={{ marginBottom: 8 }}>
+        <button className="ss-topbtn" onClick={() => navigate('/results')}>← Back to results</button>
+      </div>
+      <div style={{ textAlign: 'center', marginBottom: 10 }}>
+        <div className="kicker">The finer grain</div>
+        <h1 style={{ fontSize: 44, margin: '6px 0 0' }}>Refine Your Portrait</h1>
+      </div>
+      <p style={{ textAlign: 'center', fontSize: 14.5, lineHeight: 1.6, color: '#5a5348', maxWidth: 520, margin: '0 auto 26px' }}>
+        Nuanced scale questions sharpen the axes where your answers were most ambiguous. Answer as many
+        or as few as you like — each updates your persona in real time.
+      </p>
 
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          These 40 nuanced Likert-scale questions sharpen your portrait on axes where your responses were most ambiguous.
-          Answer as many or as few as you like — each answer updates your persona in real time.
-        </p>
-
-        {answeredRefine > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-violet-200 dark:border-violet-800 p-4 mb-6">
-            <h2 className="font-semibold text-violet-700 dark:text-violet-300 mb-2 text-sm">Persona shift</h2>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <p className="text-gray-400 mb-1">Before refinement</p>
-                <p className="font-bold text-gray-700 dark:text-gray-200">{basePersona.archetype.emoji} {basePersona.archetype.name}</p>
-              </div>
-              <div>
-                <p className="text-gray-400 mb-1">After refinement</p>
-                <p className="font-bold text-violet-700 dark:text-violet-300">{refinedPersona.archetype.emoji} {refinedPersona.archetype.name}</p>
-              </div>
+      {answeredRefine > 0 && (
+        <div style={{ border: '1px solid rgba(182,130,53,.4)', borderRadius: 4, background: 'var(--tint-gold)', padding: '18px 22px', marginBottom: 24 }}>
+          <div className="kicker" style={{ letterSpacing: '.2em', color: 'var(--gold-deep)', marginBottom: 12 }}>Persona shift</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginBottom: 3 }}>Before refinement</div>
+              <div className="font-display" style={{ fontWeight: 600, fontSize: 17, color: 'var(--ink-2)' }}>{basePersona.archetype.name}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--ink-faint)', marginBottom: 3 }}>After refinement</div>
+              <div className="font-display" style={{ fontWeight: 600, fontSize: 17, color: 'var(--gold-deep)' }}>{refinedPersona.archetype.name}</div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="space-y-4">
-          {REFINEMENT_QUESTIONS.map(rq => {
-            const current = refineAnswers[rq.id] ?? 3;
-            return (
-              <div key={rq.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-4">{rq.text}</p>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map(v => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {REFINEMENT_QUESTIONS.map(rq => {
+          const current = refineAnswers[rq.id] ?? 3;
+          return (
+            <div key={rq.id} className="ss-card" style={{ padding: '22px 24px' }}>
+              <p className="font-display" style={{ fontWeight: 600, fontSize: 19, lineHeight: 1.35, color: 'var(--ink)', margin: '0 0 16px' }}>{rq.text}</p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[1, 2, 3, 4, 5].map(v => {
+                  const sel = current === v;
+                  return (
                     <button
                       key={v}
                       onClick={() => setRefineAnswer(rq.id, v)}
                       aria-label={LIKERT_LABELS[v - 1]}
-                      aria-pressed={current === v}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                        current === v
-                          ? 'bg-violet-600 text-white shadow-sm'
-                          : 'bg-gray-50 dark:bg-gray-800 text-gray-500 hover:bg-violet-50 dark:hover:bg-violet-950 hover:text-violet-700 dark:hover:text-violet-300'
-                      }`}
+                      aria-pressed={sel}
+                      className="tnum"
+                      style={{
+                        flex: 1, padding: '9px 0', borderRadius: 3, cursor: 'pointer', fontSize: 13, transition: 'all .15s',
+                        border: `1px solid ${sel ? 'var(--gold)' : 'rgba(32,31,29,.14)'}`,
+                        color: sel ? 'var(--gold-deep)' : 'var(--ink-muted)',
+                        background: sel ? 'rgba(182,130,53,.12)' : 'transparent',
+                      }}
                     >
                       {v}
                     </button>
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs text-gray-300 dark:text-gray-600 mt-1 px-1">
-                  <span>Strongly disagree</span>
-                  <span>Strongly agree</span>
-                </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Touches: {rq.targetDimensions.map(d => DIMENSION_MAP[d]?.label).join(', ')}
-                </p>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-faint-3)', marginTop: 6 }}>
+                <span>Strongly disagree</span><span>Strongly agree</span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--ink-faint)', margin: '12px 0 0' }}>
+                Touches: <span style={{ color: 'var(--gold-deep)' }}>{rq.targetDimensions.map(d => DIMENSION_MAP[d]?.label).join(', ')}</span>
+              </p>
+            </div>
+          );
+        })}
+      </div>
 
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => navigate('/results')}
-            className="px-8 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition-colors shadow-md"
-          >
-            View refined persona →
-          </button>
-        </div>
+      <div style={{ textAlign: 'center', marginTop: 30 }}>
+        <button className="ss-cta ss-cta-primary" onClick={() => navigate('/results')}>View refined persona →</button>
       </div>
     </div>
   );

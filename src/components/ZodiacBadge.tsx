@@ -1,56 +1,71 @@
 import type { ZodiacSign } from '../data/zodiac';
-import { ELEMENT_BG } from '../data/zodiac';
 
 interface Props {
   sign: ZodiacSign;
-  size?: 'sm' | 'lg';
+  variant?: 'chip' | 'mini' | 'full';
 }
 
-const ELEMENT_TEXT: Record<string, string> = {
-  Fire:  'text-orange-700 dark:text-orange-300',
-  Earth: 'text-green-700 dark:text-green-300',
-  Air:   'text-sky-700 dark:text-sky-300',
-  Water: 'text-blue-700 dark:text-blue-300',
+// Muted, classical element accents.
+const EL_COLOR: Record<string, string> = {
+  Fire: '#a0552f',
+  Earth: '#6b6a4e',
+  Air: '#4a6a86',
+  Water: '#5a4a86',
 };
 
-export function ZodiacBadge({ sign, size = 'sm' }: Props) {
-  if (size === 'lg') {
+export function ZodiacBadge({ sign, variant = 'chip' }: Props) {
+  const accent = EL_COLOR[sign.element] ?? '#5a4a86';
+
+  if (variant === 'chip') {
     return (
-      <div className={`rounded-2xl border p-5 ${ELEMENT_BG[sign.element]}`}>
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-4xl" aria-hidden>{sign.symbol}</span>
-          <div>
-            <h3 className={`font-bold text-lg ${ELEMENT_TEXT[sign.element]}`}>{sign.name}</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{sign.dateRange}</p>
-          </div>
-        </div>
-        <div className="flex gap-2 flex-wrap mb-3">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20 ${ELEMENT_TEXT[sign.element]}`}>
-            {sign.element}
-          </span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20 text-gray-600 dark:text-gray-300">
-            {sign.modality}
-          </span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20 text-gray-600 dark:text-gray-300">
-            {sign.rulingPlanet}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-1">
-          {sign.traits.map(t => (
-            <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20 text-gray-600 dark:text-gray-300">
-              {t}
-            </span>
-          ))}
-        </div>
-      </div>
+      <span
+        className="inline-flex items-center gap-1.5 font-body"
+        style={{
+          fontSize: 13,
+          color: 'var(--ink-2)',
+          border: '1px solid rgba(90,74,60,.25)',
+          borderRadius: 3,
+          padding: '5px 11px',
+        }}
+      >
+        <span style={{ color: accent }} aria-hidden>{sign.symbol}</span>
+        {sign.name}
+        <span style={{ color: 'var(--ink-faint)' }}>· {sign.element}</span>
+      </span>
     );
   }
 
+  const tinted = variant === 'full';
+
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${ELEMENT_BG[sign.element]} ${ELEMENT_TEXT[sign.element]}`}>
-      <span aria-hidden>{sign.symbol}</span>
-      {sign.name}
-      <span className="text-xs opacity-70">· {sign.element}</span>
+    <div
+      className="rounded"
+      style={{
+        border: `1px solid ${tinted ? 'rgba(90,74,60,.22)' : 'var(--card-border)'}`,
+        background: tinted ? 'var(--tint-gold)' : '#fff',
+        padding: tinted ? '22px 26px' : '16px 18px',
+        borderRadius: 4,
+      }}
+    >
+      <div className="flex items-center gap-3.5 flex-wrap">
+        <span style={{ fontSize: tinted ? 34 : 26, color: accent }} aria-hidden>{sign.symbol}</span>
+        <div className="mr-auto">
+          <div className="font-display" style={{ fontWeight: 600, fontSize: tinted ? 22 : 19, color: 'var(--ink)' }}>
+            {sign.name}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink-muted-2)' }}>{sign.dateRange}</div>
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          <span className="ss-chip" style={{ borderColor: `${accent}66`, color: accent }}>{sign.element}</span>
+          <span className="ss-chip">{sign.modality}</span>
+          <span className="ss-chip">{sign.rulingPlanet}</span>
+        </div>
+      </div>
+      <div className="flex gap-1.5 flex-wrap" style={{ marginTop: 14 }}>
+        {sign.traits.map(t => (
+          <span key={t} className="ss-chip-solid">{t}</span>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,3 @@
-import {
-  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Label,
-} from 'recharts';
 import type { DimensionScore } from '../engine/scoring';
 import type { DimensionKey } from '../data/dimensions';
 
@@ -9,64 +6,44 @@ interface Props {
 }
 
 export function PoliticalCompass({ scores }: Props) {
-  const econ   = scores['economicAxis']?.score ?? 0;
+  const econ = scores['economicAxis']?.score ?? 0;
   const social = scores['socialAxis']?.score ?? 0;
-  const econConf   = scores['economicAxis']?.confidence ?? 0;
-  const socialConf = scores['socialAxis']?.confidence ?? 0;
-  const lowConf    = econConf < 0.3 || socialConf < 0.3;
+  const lowConf = (scores['economicAxis']?.confidence ?? 0) < 0.3 || (scores['socialAxis']?.confidence ?? 0) < 0.3;
 
-  const data = [{ x: econ, y: social, label: 'You' }];
+  const S = 300, c = S / 2, pad = 42, half = c - pad;
+  const x = c + (econ / 100) * half;
+  const y = c - (social / 100) * half;
 
   return (
-    <section aria-label="Political Compass" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Political Compass</h2>
+    <section aria-label="Political Compass" className="ss-card" style={{ padding: '26px 28px' }}>
+      <h2 style={{ fontSize: 26, margin: '0 0 4px', textAlign: 'center' }}>Political Compass</h2>
       {lowConf && (
-        <p className="text-xs text-amber-500 mb-2">
+        <p style={{ fontSize: 11, fontStyle: 'italic', color: '#b98b3a', textAlign: 'center', margin: '0 0 6px' }}>
           Low confidence — answer more political questions for an accurate reading.
         </p>
       )}
-      <div className="grid grid-cols-2 text-xs text-gray-400 mb-2 px-8">
-        <span className="text-left">← Egalitarian / Left</span>
-        <span className="text-right">Market / Right →</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink-faint)', padding: '0 20px', marginBottom: 2 }}>
+        <span>← Egalitarian / Left</span><span>Market / Right →</span>
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <ScatterChart margin={{ top: 10, right: 30, bottom: 30, left: 30 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis type="number" dataKey="x" domain={[-100, 100]} tick={{ fontSize: 10 }}>
-            <Label value="Economic Axis" offset={-10} position="insideBottom" style={{ fontSize: 11, fill: '#9ca3af' }} />
-          </XAxis>
-          <YAxis type="number" dataKey="y" domain={[-100, 100]} tick={{ fontSize: 10 }}>
-            <Label value="Social Axis" angle={-90} position="insideLeft" style={{ fontSize: 11, fill: '#9ca3af' }} />
-          </YAxis>
-          <ReferenceLine x={0} stroke="#d1d5db" strokeWidth={1.5} />
-          <ReferenceLine y={0} stroke="#d1d5db" strokeWidth={1.5} />
-          <Scatter data={data} fill="#8b5cf6" r={8} />
-          <Tooltip
-            content={({ payload }) => {
-              if (!payload?.length) return null;
-              const d = payload[0].payload;
-              return (
-                <div className="bg-gray-900 text-white text-xs px-3 py-2 rounded-lg shadow-lg">
-                  <div>Economic: {d.x > 0 ? '+' : ''}{d.x} ({d.x > 0 ? 'market-leaning' : 'egalitarian-leaning'})</div>
-                  <div>Social: {d.y > 0 ? '+' : ''}{d.y} ({d.y > 0 ? 'authoritarian-leaning' : 'libertarian-leaning'})</div>
-                </div>
-              );
-            }}
-          />
-        </ScatterChart>
-      </ResponsiveContainer>
-      <div className="grid grid-cols-2 text-xs text-gray-400 mt-1 px-8">
-        <span className="text-center col-span-2">↑ Authoritarian &nbsp;|&nbsp; ↓ Libertarian</span>
+      <svg viewBox={`0 0 ${S} ${S}`} style={{ width: '100%', maxWidth: 300, display: 'block', margin: '0 auto' }} role="img" aria-label={`Economic ${econ}, Social ${social}`}>
+        <rect x={c} y={pad} width={half} height={half} fill="rgba(182,130,53,.03)" />
+        <rect x={pad} y={c} width={half} height={half} fill="rgba(182,130,53,.03)" />
+        <rect x={pad} y={pad} width={2 * half} height={2 * half} fill="none" stroke="var(--ring)" strokeWidth={1} />
+        <line x1={c} y1={pad} x2={c} y2={S - pad} stroke="#d9cdb6" strokeDasharray="3 4" strokeWidth={1} />
+        <line x1={pad} y1={c} x2={S - pad} y2={c} stroke="#d9cdb6" strokeDasharray="3 4" strokeWidth={1} />
+        <circle cx={x} cy={y} r={15} fill="rgba(182,130,53,.15)" />
+        <circle cx={x} cy={y} r={6} fill="var(--gold)" stroke="#fff" strokeWidth={1.5} />
+        <text x={x} y={y - 20} fill="var(--gold-deep)" fontSize={11} fontFamily="Cormorant Garamond" fontWeight={600} textAnchor="middle">You</text>
+      </svg>
+      <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-faint)', marginTop: 4 }}>
+        ↑ Authoritarian &nbsp;|&nbsp; ↓ Libertarian
       </div>
-      {/* Text/table fallback for accessibility */}
-      <details className="mt-3">
-        <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600 dark:hover:text-gray-200">
-          Text version
-        </summary>
-        <table className="text-xs mt-2 w-full">
+      <details style={{ marginTop: 10 }}>
+        <summary className="ss-link" style={{ fontSize: 12, listStyle: 'none' }}>Text version</summary>
+        <table style={{ fontSize: 12, marginTop: 8, width: '100%' }}>
           <tbody>
-            <tr><td className="text-gray-500 pr-4">Economic Axis</td><td className="font-medium">{econ > 0 ? `+${econ} (market-leaning)` : `${econ} (egalitarian-leaning)`}</td></tr>
-            <tr><td className="text-gray-500 pr-4">Social Axis</td><td className="font-medium">{social > 0 ? `+${social} (authoritarian-leaning)` : `${social} (libertarian-leaning)`}</td></tr>
+            <tr><td style={{ color: 'var(--ink-muted)', paddingRight: 16 }}>Economic Axis</td><td className="tnum">{econ > 0 ? `+${econ} (market-leaning)` : `${econ} (egalitarian-leaning)`}</td></tr>
+            <tr><td style={{ color: 'var(--ink-muted)', paddingRight: 16 }}>Social Axis</td><td className="tnum">{social > 0 ? `+${social} (authoritarian-leaning)` : `${social} (libertarian-leaning)`}</td></tr>
           </tbody>
         </table>
       </details>

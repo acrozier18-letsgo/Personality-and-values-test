@@ -12,9 +12,14 @@ export type DimensionKey =
   | 'epistemology' | 'metaphysics' | 'freeWill' | 'ethicsFramework'
   | 'moralRealism' | 'humanNature' | 'timeOrientation'
   // Group F – Ontological
-  | 'realismConstructivism' | 'orderChaos' | 'individualCollective' | 'reductionHolism';
+  | 'realismConstructivism' | 'orderChaos' | 'individualCollective' | 'reductionHolism'
+  // Group G – Humor styles
+  | 'humorSarcastic' | 'humorDry' | 'humorAbsurdist' | 'humorDark'
+  | 'humorObservational' | 'humorSelfDeprecating' | 'humorWholesome' | 'humorWordplay'
+  // Group H – Faith & Spirituality
+  | 'religiosity' | 'spirituality' | 'mysticism';
 
-export type DimensionGroup = 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+export type DimensionGroup = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H';
 export type DimensionType = 'bipolar' | 'unipolar';
 
 export interface Dimension {
@@ -125,6 +130,21 @@ export const DIMENSIONS: Dimension[] = [
     negativeLabel: 'Holism', positiveLabel: 'Reductionism',
     description: 'Whether complex phenomena are best understood by analysing their parts (reductionism) or as unified wholes (holism).',
   },
+
+  // ── Group G: Humor Styles ─────────────────────────────────────────────────
+  { key: 'humorSarcastic',      group: 'G', type: 'unipolar', label: 'Sarcasm & Irony',      description: 'Humor delivered through irony and saying the opposite of what you mean.' },
+  { key: 'humorDry',            group: 'G', type: 'unipolar', label: 'Dry & Deadpan',         description: 'Understated, straight-faced wit where the joke hides behind a flat delivery.' },
+  { key: 'humorAbsurdist',      group: 'G', type: 'unipolar', label: 'Absurdist & Surreal',   description: 'Delight in the nonsensical, random, and gloriously illogical.' },
+  { key: 'humorDark',           group: 'G', type: 'unipolar', label: 'Dark & Gallows',        description: 'Finding comedy in grim, morbid, or taboo subjects.' },
+  { key: 'humorObservational',  group: 'G', type: 'unipolar', label: 'Observational',         description: 'Humor drawn from the small, shared absurdities of everyday life.' },
+  { key: 'humorSelfDeprecating',group: 'G', type: 'unipolar', label: 'Self-Deprecating',      description: 'Turning yourself into the punchline, laughing at your own flaws.' },
+  { key: 'humorWholesome',      group: 'G', type: 'unipolar', label: 'Wholesome & Playful',   description: 'Warm, silly, feel-good humor with no sharp edges.' },
+  { key: 'humorWordplay',       group: 'G', type: 'unipolar', label: 'Wordplay & Puns',       description: 'A love of puns, double meanings, and clever turns of phrase.' },
+
+  // ── Group H: Faith & Spirituality ─────────────────────────────────────────
+  { key: 'religiosity',  group: 'H', type: 'unipolar', label: 'Religiosity',      description: 'Commitment to religious belief and the practices of an organised faith.' },
+  { key: 'spirituality', group: 'H', type: 'unipolar', label: 'Spirituality',     description: 'A personal sense of the sacred or transcendent, apart from organised religion.' },
+  { key: 'mysticism',    group: 'H', type: 'unipolar', label: 'Mysticism & Awe',  description: 'Openness to mystery, wonder, and experiences that exceed rational explanation.' },
 ];
 
 export const DIMENSION_MAP: Record<DimensionKey, Dimension> = Object.fromEntries(

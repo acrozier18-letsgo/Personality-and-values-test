@@ -1,20 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeScore, cosineSimilarity, euclideanDistance } from '../engine/similarity';
 import type { DimensionKey, DimensionType } from '../data/dimensions';
+import { DIMENSION_MAP } from '../data/dimensions';
 
-const bipolarTypes: Record<DimensionKey, DimensionType> = {
-  openness: 'unipolar', conscientiousness: 'unipolar', extraversion: 'unipolar',
-  agreeableness: 'unipolar', neuroticism: 'unipolar', selfDirection: 'unipolar',
-  stimulation: 'unipolar', hedonism: 'unipolar', achievement: 'unipolar', power: 'unipolar',
-  security: 'unipolar', conformity: 'unipolar', tradition: 'unipolar', benevolence: 'unipolar',
-  universalism: 'unipolar', care: 'unipolar', fairness: 'unipolar', loyalty: 'unipolar',
-  authority: 'unipolar', sanctity: 'unipolar', liberty: 'unipolar',
-  economicAxis: 'bipolar', socialAxis: 'bipolar', epistemology: 'bipolar',
-  metaphysics: 'bipolar', freeWill: 'bipolar', ethicsFramework: 'bipolar',
-  moralRealism: 'bipolar', humanNature: 'bipolar', timeOrientation: 'bipolar',
-  realismConstructivism: 'bipolar', orderChaos: 'bipolar', individualCollective: 'bipolar',
-  reductionHolism: 'bipolar',
-};
+// Derived from the dimension data so it stays in sync as dimensions are added.
+const bipolarTypes = Object.fromEntries(
+  Object.entries(DIMENSION_MAP).map(([k, v]) => [k, v.type]),
+) as Record<DimensionKey, DimensionType>;
 
 describe('normalizeScore', () => {
   it('bipolar: 100 → 1', () => expect(normalizeScore(100, 'bipolar')).toBeCloseTo(1));

@@ -2,57 +2,35 @@ import type { FigureMatch } from '../engine/synthesis';
 
 interface Props {
   match: FigureMatch;
-  rank: number;
 }
 
-function Monogram({ name, color }: { name: string; color: string }) {
-  const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('');
-  return (
-    <div
-      className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shrink-0"
-      style={{ background: color }}
-      aria-hidden
-    >
-      {initials}
-    </div>
-  );
-}
-
-const COLORS = ['#7c3aed', '#2563eb', '#059669', '#d97706', '#dc2626'];
-
-export function FigureMatchCard({ match, rank }: Props) {
+export function FigureMatchCard({ match }: Props) {
   const { figure, affinity } = match;
-  const color = COLORS[rank % COLORS.length];
+  const initials = figure.name.split(' ').map(w => w[0]).slice(0, 2).join('');
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 flex gap-4 items-start">
-      {figure.imageUrl ? (
-        <img
-          src={figure.imageUrl}
-          alt={figure.name}
-          className="w-16 h-16 rounded-full object-cover shrink-0"
-          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-        />
-      ) : (
-        <Monogram name={figure.name} color={color} />
-      )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-          <h3 className="font-bold text-gray-900 dark:text-white">{figure.name}</h3>
-          <span className="text-xs text-gray-400">{figure.years}</span>
+    <div className="ss-card" style={{ padding: '22px 24px', display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+      <div
+        className="font-display"
+        style={{ width: 58, height: 58, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center', border: '1px solid rgba(182,130,53,.5)', background: '#fbf6ec', color: 'var(--gold-deep)', fontWeight: 600, fontSize: 20 }}
+        aria-hidden
+      >
+        {initials}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <span className="font-display" style={{ fontWeight: 600, fontSize: 21, color: 'var(--ink)' }}>{figure.name}</span>
+          <span className="tnum" style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{figure.years}</span>
         </div>
-        <p className="text-xs text-violet-600 dark:text-violet-400 font-medium mb-2">{figure.field}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">{figure.blurb}</p>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${affinity}%`, background: color }}
-            />
+        <div className="kicker" style={{ fontSize: 12, letterSpacing: '.06em', margin: '3px 0 8px' }}>{figure.field}</div>
+        <p style={{ fontSize: 14.5, lineHeight: 1.6, color: 'var(--ink-2)', margin: '0 0 12px' }}>{figure.blurb}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, height: 6, background: 'var(--track)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${affinity}%`, background: 'var(--gold)', borderRadius: 3 }} />
           </div>
-          <span className="text-xs font-semibold text-gray-500 shrink-0">{affinity}% affinity</span>
+          <span className="tnum" style={{ fontSize: 12, color: 'var(--ink-muted-2)', flex: 'none' }}>{affinity}% affinity</span>
         </div>
-        <p className="text-xs text-gray-400 mt-1 italic">
+        <p style={{ fontSize: 11.5, color: 'var(--ink-faint-2)', fontStyle: 'italic', margin: '8px 0 0' }}>
           You share tendencies with {figure.name} — this is a pattern match, not a comparison.
         </p>
       </div>

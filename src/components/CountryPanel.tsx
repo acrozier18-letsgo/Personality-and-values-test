@@ -1,42 +1,43 @@
 import type { CountryMatch } from '../engine/synthesis';
 
+function code(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
 interface Props {
   countries: CountryMatch[];
 }
 
 export function CountryPanel({ countries }: Props) {
   return (
-    <section aria-label="Country recommendations">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Cultural Resonance</h2>
-      <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
-        Where your stated values and preferences echo the cultural vibe — playful exploration, not a life plan.
+    <section aria-label="Cultural resonance">
+      <div style={{ textAlign: 'center', marginBottom: 6 }}>
+        <div className="kicker">Elsewhere</div>
+        <h2 style={{ fontSize: 34, margin: '6px 0 0' }}>Cultural Resonance</h2>
+      </div>
+      <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-muted-2)', margin: '0 0 22px' }}>
+        Where your stated values echo the cultural vibe — playful exploration, not a life plan.
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
         {countries.map(({ country, fit }, i) => (
           <div
             key={country.id}
-            className={`bg-white dark:bg-gray-900 rounded-2xl border p-5 ${
-              i === 0 ? 'border-violet-300 dark:border-violet-700' : 'border-gray-100 dark:border-gray-800'
-            }`}
+            className="ss-card"
+            style={{ padding: '24px 22px', textAlign: 'center', borderColor: i === 0 ? 'rgba(182,130,53,.5)' : undefined }}
           >
-            {i === 0 && (
-              <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 mb-2 block">
-                Top match
-              </span>
-            )}
-            <div className="text-5xl mb-2" aria-hidden>{country.emoji}</div>
-            <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-1">{country.name}</h3>
-            <p className="text-xs text-gray-400 mb-2">{country.region}</p>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-violet-500 rounded-full transition-all duration-700"
-                  style={{ width: `${fit}%` }}
-                />
+            {i === 0 && <div className="kicker" style={{ fontSize: 11, letterSpacing: '.14em', marginBottom: 8 }}>Top match</div>}
+            <div className="font-display" style={{ fontWeight: 600, fontSize: 34, color: 'var(--ink-faint-3)', letterSpacing: '.04em' }}>{code(country.name)}</div>
+            <div className="font-display" style={{ fontWeight: 600, fontSize: 20, color: 'var(--ink)', margin: '2px 0 1px' }}>{country.name}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-faint)', marginBottom: 12 }}>{country.region}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ flex: 1, height: 6, background: 'var(--track)', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${fit}%`, background: 'var(--gold)', borderRadius: 3 }} />
               </div>
-              <span className="text-xs font-semibold text-gray-400 shrink-0">{fit}%</span>
+              <span className="tnum" style={{ fontSize: 12, color: 'var(--ink-muted-2)', flex: 'none' }}>{fit}%</span>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 italic">{country.why}</p>
+            <p style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink-2)', fontStyle: 'italic', margin: 0 }}>{country.why}</p>
           </div>
         ))}
       </div>

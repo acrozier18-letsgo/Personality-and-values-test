@@ -1,6 +1,7 @@
 import type { DimensionScore } from '../engine/scoring';
 import type { DimensionKey } from '../data/dimensions';
 import { DIMENSIONS } from '../data/dimensions';
+import { InfoTooltip } from './InfoTooltip';
 
 interface Props {
   scores: Record<DimensionKey, DimensionScore>;
@@ -8,50 +9,37 @@ interface Props {
 
 const BIPOLAR_GROUPS = ['D', 'E', 'F'] as const;
 
-function AxisBar({ dim, score, confidence }: {
-  dim: typeof DIMENSIONS[number];
-  score: number;
-  confidence: number;
-}) {
-  const isLowConf = confidence < 0.3;
-  const left  = score < 0 ? Math.abs(score) : 0;
-  const right = score > 0 ? score : 0;
+function AxisBar({ dim, score, confidence }: { dim: typeof DIMENSIONS[number]; score: number; confidence: number }) {
+  const low = confidence < 0.3;
+  const leftPct = score < 0 ? Math.abs(score) : 0;
+  const rightPct = score > 0 ? score : 0;
 
   return (
-    <div className={`mb-4 ${isLowConf ? 'opacity-40' : ''}`} aria-label={`${dim.label}: ${score}`}>
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-        <span className="max-w-[40%] truncate">{dim.negativeLabel}</span>
-        <span className="font-medium text-gray-700 dark:text-gray-300">{dim.label}</span>
-        <span className="max-w-[40%] truncate text-right">{dim.positiveLabel}</span>
+    <div style={{ marginBottom: 16, opacity: low ? 0.5 : 1 }} aria-label={`${dim.label}: ${score}`}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 10.5, color: 'var(--ink-muted-2)', marginBottom: 6, gap: 8 }}>
+        <span style={{ maxWidth: '36%', lineHeight: 1.1 }}>{dim.negativeLabel}</span>
+        <span className="font-display" style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--ink)', textAlign: 'center', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+          {dim.label}
+          <InfoTooltip text={dim.description} label={`About ${dim.label}`} />
+        </span>
+        <span style={{ maxWidth: '36%', textAlign: 'right', lineHeight: 1.1 }}>{dim.positiveLabel}</span>
       </div>
-      <div className="relative h-3 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex">
-        {/* left half */}
-        <div className="w-1/2 flex justify-end">
-          <div
-            className="h-full bg-indigo-400 rounded-l-full transition-all duration-500"
-            style={{ width: `${left}%` }}
-          />
+      <div style={{ position: 'relative', height: 8, borderRadius: 2, background: 'var(--track)', display: 'flex' }}>
+        <div style={{ width: '50%', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ height: '100%', width: `${leftPct}%`, background: 'var(--gold-muted)', borderRadius: '2px 0 0 2px' }} />
         </div>
-        {/* centre mark */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gray-300 dark:bg-gray-600" />
-        {/* right half */}
-        <div className="w-1/2">
-          <div
-            className="h-full bg-violet-500 rounded-r-full transition-all duration-500"
-            style={{ width: `${right}%` }}
-          />
+        <div style={{ position: 'absolute', left: '50%', top: -2, bottom: -2, width: 1, background: 'var(--gold)' }} />
+        <div style={{ width: '50%' }}>
+          <div style={{ height: '100%', width: `${rightPct}%`, background: 'var(--gold)', borderRadius: '0 2px 2px 0' }} />
         </div>
       </div>
-      {isLowConf && (
-        <p className="text-xs text-amber-400 mt-0.5">needs more answers</p>
-      )}
+      {low && <div style={{ fontSize: 10, fontStyle: 'italic', color: '#b98b3a', marginTop: 4 }}>needs more answers</div>}
     </div>
   );
 }
 
 export function AxisBars({ scores }: Props) {
   const bipolarDims = DIMENSIONS.filter(d => d.type === 'bipolar' && BIPOLAR_GROUPS.includes(d.group as typeof BIPOLAR_GROUPS[number]));
-
   const grouped = BIPOLAR_GROUPS.map(g => ({
     group: g,
     label: g === 'D' ? 'Political' : g === 'E' ? 'Philosophical' : 'Ontological',
@@ -59,19 +47,17 @@ export function AxisBars({ scores }: Props) {
   }));
 
   return (
-    <section aria-label="Axis bars for philosophical and ontological dimensions">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Philosophical & Ontological Axes</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <section aria-label="Philosophical and ontological axes">
+      <div style={{ textAlign: 'center', marginBottom: 22 }}>
+        <div className="kicker">Where you stand</div>
+        <h2 style={{ fontSize: 34, margin: '6px 0 0' }}>Philosophical &amp; Ontological Axes</h2>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 16 }}>
         {grouped.map(({ group, label, dims }) => (
-          <div key={group} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm mb-4">{label}</h3>
+          <div key={group} className="ss-card" style={{ padding: '22px 22px 12px' }}>
+            <h4 className="font-display" style={{ fontWeight: 600, fontSize: 16, color: 'var(--ink-3)', margin: '0 0 18px', textAlign: 'center' }}>{label}</h4>
             {dims.map(d => (
-              <AxisBar
-                key={d.key}
-                dim={d}
-                score={scores[d.key]?.score ?? 0}
-                confidence={scores[d.key]?.confidence ?? 0}
-              />
+              <AxisBar key={d.key} dim={d} score={scores[d.key]?.score ?? 0} confidence={scores[d.key]?.confidence ?? 0} />
             ))}
           </div>
         ))}

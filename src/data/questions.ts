@@ -3,7 +3,7 @@ import type { DimensionKey } from './dimensions';
 export interface Question {
   id: string;
   text: string;
-  group: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+  group: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H';
   weights: Partial<Record<DimensionKey, number>>;
 }
 
@@ -223,4 +223,41 @@ export const QUESTIONS: Question[] = [
   { id:'q198', text:"I feel that most people, given the chance, will cooperate rather than cheat.", group:'E', weights:{ humanNature:3, fairness:1 } },
   { id:'q199', text:"The world has too many rules and not enough room for spontaneity.", group:'F', weights:{ orderChaos:-3, liberty:2 } },
   { id:'q200', text:"I think about what I will leave behind and how I'll be remembered.", group:'A', weights:{ conscientiousness:1, achievement:2, benevolence:1 } },
+
+  // ── Group G: Humor styles (q201–q216) ─────────────────────────────────────
+  { id:'q201', text:"A well-timed sarcastic remark is my idea of a good joke.", group:'G', weights:{ humorSarcastic:3 } },
+  { id:'q202', text:"I rarely use irony or sarcasm — I'd rather just say what I mean.", group:'G', weights:{ humorSarcastic:-3 } },
+  { id:'q203', text:"My humor is so deadpan that people aren't always sure I'm joking.", group:'G', weights:{ humorDry:3 } },
+  { id:'q204', text:"I love a bone-dry, understated one-liner.", group:'G', weights:{ humorDry:2 } },
+  { id:'q205', text:"The more surreal and nonsensical a joke is, the funnier I find it.", group:'G', weights:{ humorAbsurdist:3 } },
+  { id:'q206', text:"Random, illogical humor leaves me cold — I prefer jokes that make sense.", group:'G', weights:{ humorAbsurdist:-3 } },
+  { id:'q207', text:"I can find something to laugh about even in grim or morbid situations.", group:'G', weights:{ humorDark:3 } },
+  { id:'q208', text:"Jokes about death, misfortune, or taboo topics make me wince more than laugh.", group:'G', weights:{ humorDark:-3 } },
+  { id:'q209', text:"My best jokes come from noticing the small absurdities of everyday life.", group:'G', weights:{ humorObservational:3 } },
+  { id:'q210', text:"I love humor that points out things everyone experiences but no one mentions.", group:'G', weights:{ humorObservational:2 } },
+  { id:'q211', text:"I'm quick to make myself the punchline of a joke.", group:'G', weights:{ humorSelfDeprecating:3 } },
+  { id:'q212', text:"I'd rather not poke fun at my own flaws in front of other people.", group:'G', weights:{ humorSelfDeprecating:-3 } },
+  { id:'q213', text:"I prefer humor that's warm and silly over anything edgy or cutting.", group:'G', weights:{ humorWholesome:3, humorDark:-1 } },
+  { id:'q214', text:"Gentle, feel-good humor bores me — I like a sharper edge.", group:'G', weights:{ humorWholesome:-3 } },
+  { id:'q215', text:"A clever pun can genuinely delight me.", group:'G', weights:{ humorWordplay:3 } },
+  { id:'q216', text:"Puns and wordplay make me groan more than laugh.", group:'G', weights:{ humorWordplay:-3 } },
+
+  // ── Group H: Faith & Spirituality (q217–q225) ─────────────────────────────
+  { id:'q217', text:"Religious faith is an important part of how I live my life.", group:'H', weights:{ religiosity:3 } },
+  { id:'q218', text:"I take part in religious practice or worship on a regular basis.", group:'H', weights:{ religiosity:3 } },
+  { id:'q219', text:"I consider myself secular and don't look to religion for guidance.", group:'H', weights:{ religiosity:-3 } },
+  { id:'q220', text:"I sense a sacred or spiritual dimension to life, even without following a religion.", group:'H', weights:{ spirituality:3 } },
+  { id:'q221', text:"I sometimes feel deeply connected to something larger than myself.", group:'H', weights:{ spirituality:3 } },
+  { id:'q222', text:"Talk of the 'spiritual' or the 'sacred' doesn't really resonate with me.", group:'H', weights:{ spirituality:-3 } },
+  { id:'q223', text:"I'm drawn to mysteries that may never have a rational explanation.", group:'H', weights:{ mysticism:3 } },
+  { id:'q224', text:"I've had moments of awe so profound they felt beyond words.", group:'H', weights:{ mysticism:3 } },
+  { id:'q225', text:"I believe almost everything can ultimately be explained by science and reason.", group:'H', weights:{ mysticism:-2, epistemology:-1 } },
+
+  // ── Temperament reinforcement (q226–q231, Group A) ────────────────────────
+  { id:'q226', text:"I recharge by being around other people rather than by being alone.", group:'A', weights:{ extraversion:3 } },
+  { id:'q227', text:"Small setbacks can put me in a bad mood for the rest of the day.", group:'A', weights:{ neuroticism:3 } },
+  { id:'q228', text:"I stay calm and even-keeled even when things go wrong.", group:'A', weights:{ neuroticism:-3 } },
+  { id:'q229', text:"I'm usually the one bringing energy and warmth to a group.", group:'A', weights:{ extraversion:3, agreeableness:1 } },
+  { id:'q230', text:"My mood can swing quickly from one extreme to another.", group:'A', weights:{ neuroticism:3 } },
+  { id:'q231', text:"I tend to keep to myself and observe rather than jump in.", group:'A', weights:{ extraversion:-3 } },
 ];

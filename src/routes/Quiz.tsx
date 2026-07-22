@@ -5,6 +5,24 @@ import { QUESTIONS } from '../data/questions';
 import { QuestionCard } from '../components/QuestionCard';
 import { ProgressBar } from '../components/ProgressBar';
 import type { Answer } from '../engine/scoring';
+import { ANSWER_LABELS } from '../engine/scoring';
+
+const GROUPS: Record<string, { label: string; color: string }> = {
+  A: { label: 'Personality', color: '#7c5cff' },
+  B: { label: 'Values', color: '#3b82f6' },
+  C: { label: 'Morals', color: '#10b981' },
+  D: { label: 'Politics', color: '#ef4444' },
+  E: { label: 'Philosophy', color: '#f97316' },
+  F: { label: 'Ontology', color: '#14b8a6' },
+  G: { label: 'Humor', color: '#db2777' },
+  H: { label: 'Faith', color: '#a855f7' },
+};
+
+function answerColor(a: Answer | undefined): string {
+  if (a === 'strongly_agree' || a === 'agree') return '#2f7d54';
+  if (a === 'strongly_disagree' || a === 'disagree') return '#b23b3b';
+  return '#b0a894';
+}
 
 export default function Quiz() {
   const navigate = useNavigate();
@@ -12,110 +30,78 @@ export default function Quiz() {
   const [showReview, setShowReview] = useState(false);
 
   const q = QUESTIONS[cursor];
+  const group = GROUPS[q.group];
 
   const handleAnswer = (val: Answer) => {
     answer(q.id, val);
     if (cursor < QUESTIONS.length - 1) goTo(cursor + 1);
   };
 
-  if (showReview) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Review Answers</h2>
-            <button
-              onClick={() => setShowReview(false)}
-              className="text-sm text-violet-600 hover:text-violet-800 dark:text-violet-400"
-            >
-              ← Back to quiz
-            </button>
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Sticky header */}
+      <div style={{ background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(6px)', borderBottom: '1px solid var(--card-border)', padding: '16px 20px', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+          <button className="ss-topbtn" style={{ marginTop: 2, whiteSpace: 'nowrap' }} onClick={() => navigate('/')}>← Home</button>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <ProgressBar answers={answers} cursor={cursor} />
           </div>
-          <div className="space-y-2">
-            {QUESTIONS.map((q, i) => {
-              const a = answers[q.id];
+          <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+            <button className="ss-cta ss-cta-secondary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => setShowReview(v => !v)}>Review</button>
+            <button className="ss-cta ss-cta-primary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => navigate('/results')}>See persona →</button>
+          </div>
+        </div>
+      </div>
+
+      {showReview ? (
+        <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 20px', width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 30 }}>Review answers</h2>
+            <button className="ss-link" onClick={() => setShowReview(false)}>← Back to quiz</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {QUESTIONS.map((qq, i) => {
+              const a = answers[qq.id];
               return (
                 <button
-                  key={q.id}
+                  key={qq.id}
                   onClick={() => { goTo(i); setShowReview(false); }}
-                  className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
+                  className="ss-card"
+                  style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 16px', textAlign: 'left', cursor: 'pointer' }}
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="text-xs text-gray-400 w-10 shrink-0 mt-0.5">#{i + 1}</span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{q.text}</span>
-                    <span className={`text-xs font-semibold shrink-0 px-2 py-1 rounded ${
-                      a === 'yes' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                      a === 'no'  ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                      'bg-gray-100 text-gray-400 dark:bg-gray-800'
-                    }`}>
-                      {a ?? '—'}
-                    </span>
-                  </div>
+                  <span className="tnum" style={{ fontSize: 12, color: 'var(--ink-faint-3)', width: 34, flex: 'none' }}>#{i + 1}</span>
+                  <span style={{ flex: 1, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.45 }}>{qq.text}</span>
+                  <span className="font-display" style={{ fontWeight: 600, fontSize: 12, letterSpacing: '.06em', textTransform: 'uppercase', flex: 'none', color: answerColor(a), whiteSpace: 'nowrap' }}>
+                    {a ? ANSWER_LABELS[a] : '—'}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
-      {/* Top bar */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3 flex-wrap">
-          <button
-            onClick={() => navigate('/')}
-            className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 shrink-0"
-          >
-            ← Home
-          </button>
-          <div className="flex-1 min-w-0">
-            <ProgressBar answers={answers} cursor={cursor} />
-          </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              onClick={() => setShowReview(true)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-            >
-              Review
+      ) : (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+          <QuestionCard
+            question={q}
+            current={answers[q.id]}
+            onAnswer={handleAnswer}
+            onPrev={() => goTo(Math.max(0, cursor - 1))}
+            onNext={() => goTo(Math.min(QUESTIONS.length - 1, cursor + 1))}
+            hasPrev={cursor > 0}
+            hasNext={cursor < QUESTIONS.length - 1}
+            groupColor={group.color}
+            groupLabel={group.label}
+          />
+          <p style={{ fontSize: 12, color: 'var(--ink-faint-2)', marginTop: 18, textAlign: 'center' }}>
+            Your progress is saved automatically. You can leave anytime and return where you left off.
+          </p>
+          {cursor === QUESTIONS.length - 1 && (
+            <button className="ss-cta ss-cta-primary" style={{ marginTop: 22 }} onClick={() => navigate('/results')}>
+              I'm done — show my persona →
             </button>
-            <button
-              onClick={() => navigate('/results')}
-              className="text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white transition-colors font-medium"
-            >
-              See persona →
-            </button>
-          </div>
+          )}
         </div>
-      </div>
-
-      {/* Question */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <QuestionCard
-          question={q}
-          current={answers[q.id]}
-          onAnswer={handleAnswer}
-          onPrev={() => goTo(Math.max(0, cursor - 1))}
-          onNext={() => goTo(Math.min(QUESTIONS.length - 1, cursor + 1))}
-          hasPrev={cursor > 0}
-          hasNext={cursor < QUESTIONS.length - 1}
-        />
-
-        <p className="mt-4 text-xs text-gray-400 text-center">
-          Your progress is saved automatically. You can leave anytime and return where you left off.
-        </p>
-
-        {cursor === QUESTIONS.length - 1 && (
-          <button
-            onClick={() => navigate('/results')}
-            className="mt-6 px-8 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition-colors shadow-md"
-          >
-            I'm done — show my persona →
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 }

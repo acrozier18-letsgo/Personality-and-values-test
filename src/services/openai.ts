@@ -1,9 +1,15 @@
-import OpenAI from 'openai';
 import type { DimensionKey } from '../data/dimensions';
 import { DIMENSION_MAP } from '../data/dimensions';
 import type { DimensionScore } from '../engine/scoring';
 import type { ZodiacSign } from '../data/zodiac';
 import type { Archetype } from '../data/archetypes';
+
+// The OpenAI SDK is ~500 kB; load it lazily only when a call is actually made,
+// so it stays out of the initial bundle.
+async function getClient(apiKey: string) {
+  const { default: OpenAI } = await import('openai');
+  return new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+}
 
 export interface LLMPersonaResult {
   title: string;        // e.g. "The Philosopher Goat"
@@ -13,7 +19,7 @@ export interface LLMPersonaResult {
 }
 
 export async function generateExample(apiKey: string, statement: string): Promise<string> {
-  const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+  const client = await getClient(apiKey);
 
   const prompt = `Create a real life example in someone's day to day that could explain this statement: "${statement}"
 
@@ -65,7 +71,7 @@ export async function generateLLMPersona(
   archetype: Archetype,
   identitySentence: string,
 ): Promise<LLMPersonaResult> {
-  const client = new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+  const client = await getClient(apiKey);
   const topTraits = buildTopTraits(scores);
 
   // ── Step 1: Generate title + subtitle ────────────────────────────────────
@@ -135,14 +141,89 @@ Respond with ONLY the image prompt text, no preamble.`;
 
   // ── Step 3: Generate image ────────────────────────────────────────────────
   const imageResp = await client.images.generate({
-    model: 'dall-e-3',
+    model: 'gpt-image-1',
     prompt: imagePrompt,
     size: '1024x1024',
-    quality: 'standard',
+    quality: 'medium',
     n: 1,
   });
 
-  const imageUrl = (imageResp.data ?? [])[0]?.url ?? '';
+  // gpt-image-1 returns base64 (b64_json); older models return a hosted url.
+  const first = (imageResp.data ?? [])[0];
+  const imageUrl = first?.url
+    ? first.url
+    : first?.b64_json
+      ? `data:image/png;base64,${first.b64_json}`
+      : '';
 
   return { title, subtitle, imageUrl, imagePrompt };
+}
+
+// ── Personalised short story ──────────────────────────────────────────────────
+
+export interface StoryParams {
+  setting: string;      // e.g. "a deep-space colony mission"
+  profession: string;   // e.g. "field botanist"
+  companion?: string;   // optional sidekick / ally
+  challenge?: string;   // optional central quest / conflict
+  tone?: string;        // e.g. "hopeful", "comedic", "noir"
+  length: 'short' | 'medium';
+}
+
+export interface StoryResult {
+  title: string;
+  body: string;         // multi-paragraph prose, paragraphs separated by blank lines
+}
+
+export async function generateStory(
+  apiKey: string,
+  params: StoryParams,
+  scores: Record<DimensionKey, DimensionScore>,
+  personaName: string,
+  identitySentence: string,
+): Promise<StoryResult> {
+  const client = await getClient(apiKey);
+  const topTraits = buildTopTraits(scores);
+  const wordTarget = params.length === 'medium' ? '650–850' : '350–500';
+
+  const details = [
+    `Setting: ${params.setting}`,
+    `The protagonist's profession/role: ${params.profession}`,
+    params.companion ? `A companion or ally: ${params.companion}` : '',
+    params.challenge ? `The central challenge or quest: ${params.challenge}` : '',
+    params.tone ? `Overall tone: ${params.tone}` : '',
+  ].filter(Boolean).join('\n');
+
+  const prompt = `You are a gifted short-story writer. Write an original, vivid short story (${wordTarget} words) whose protagonist embodies a real person's personality profile.
+
+The protagonist is inspired by "${personaName}" — ${identitySentence}
+Their strongest psychological tendencies (from a self-assessment): ${topTraits}
+
+Story parameters chosen by the reader:
+${details}
+
+Requirements:
+- Write in third person, past tense, with the protagonist clearly at the centre.
+- SHOW their personality through action, not description. Include 3–4 concrete, specific scenes where the protagonist visibly acts out their strongest tendencies — small vivid moments that a reader could picture, the way a good real-life example illustrates an abstract trait. Do NOT name the traits or use psychology jargon; dramatise them.
+- Honour the chosen setting, profession, and any companion/challenge/tone.
+- Warm, engaging, and imaginative. Give the protagonist a fitting first name.
+- Keep it self-contained with a satisfying arc (beginning, turn, resolution).
+- This is a fun, fictional, self-reflection piece — never clinical, never judgemental.
+
+Respond in valid JSON exactly like this (no markdown fences):
+{"title": "A short evocative story title", "body": "The full story. Separate paragraphs with a blank line (\\n\\n)."}`;
+
+  const resp = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+    temperature: 0.95,
+    max_tokens: 2000,
+  });
+
+  const parsed = JSON.parse(resp.choices[0].message.content ?? '{}') as { title?: string; body?: string };
+  return {
+    title: parsed.title?.trim() || `${personaName}: A Short Story`,
+    body: (parsed.body ?? '').trim() || 'Could not generate a story. Please try again.',
+  };
 }

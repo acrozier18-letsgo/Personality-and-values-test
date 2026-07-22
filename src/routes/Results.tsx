@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { QUESTIONS } from '../data/questions';
-import { scoreAnswers } from '../engine/scoring';
+import { scoreAnswers, countAnswered } from '../engine/scoring';
 import { synthesize } from '../engine/synthesis';
 import { getZodiacFromDate } from '../data/zodiac';
 import { PersonaHeader } from '../components/PersonaHeader';
@@ -15,20 +15,25 @@ import { CountryPanel } from '../components/CountryPanel';
 import { ShareCard } from '../components/ShareCard';
 import { ZodiacBadge } from '../components/ZodiacBadge';
 import { LLMPersona } from '../components/LLMPersona';
+import { StoryStudio } from '../components/StoryStudio';
+import { TemperamentPanel, HumorPanel, FaithPanel } from '../components/CharacterPanels';
+import { PartyMatcher } from '../components/PartyMatcher';
 import { Disclaimer } from '../components/Disclaimer';
 import { toImage } from '../export/toImage';
 import { sharePersona } from '../export/share';
 
+const INTRO_CONTEXTS = ['At a party', 'At work', 'On a bio'] as const;
+
 export default function Results() {
   const navigate = useNavigate();
-  const { answers, birthdate, llmPersona, setLLMPersona } = useStore();
+  const { answers, birthdate, llmPersona, setLLMPersona, story, setStory } = useStore();
   const shareCardRef = useRef<HTMLDivElement>(null);
 
-  const result  = useMemo(() => scoreAnswers(answers, QUESTIONS), [answers]);
+  const result = useMemo(() => scoreAnswers(answers, QUESTIONS), [answers]);
   const persona = useMemo(() => synthesize(result), [result]);
-  const zodiac  = useMemo(() => birthdate ? getZodiacFromDate(birthdate) : null, [birthdate]);
+  const zodiac = useMemo(() => (birthdate ? getZodiacFromDate(birthdate) : null), [birthdate]);
 
-  const answered = Object.values(answers).filter(a => a === 'yes' || a === 'no').length;
+  const answered = countAnswered(answers);
 
   async function handleShare() {
     if (!shareCardRef.current) return;
@@ -42,155 +47,143 @@ export default function Results() {
 
   if (answered === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">🗺️</div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">No answers yet</h1>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">
-            Answer at least a few questions and your persona will take shape here.
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ maxWidth: 420 }}>
+          <div className="kicker" style={{ letterSpacing: '.3em' }}>Your persona</div>
+          <h1 style={{ fontSize: 44, margin: '10px 0 12px' }}>Not yet drawn</h1>
+          <p style={{ color: 'var(--ink-2)', marginBottom: 24, lineHeight: 1.6 }}>
+            Answer at least a few questions and your portrait will take shape here.
           </p>
-          <button
-            onClick={() => navigate('/quiz')}
-            className="px-8 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-semibold transition-colors"
-          >
-            Start the quiz →
-          </button>
+          <button className="ss-cta ss-cta-primary" onClick={() => navigate('/quiz')}>Begin the journey →</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Hidden share card rendered off-screen for capture */}
-      <div className="fixed -top-[2000px] left-0 pointer-events-none" aria-hidden>
+    <div>
+      {/* Hidden share card for capture */}
+      <div style={{ position: 'fixed', top: -2000, left: 0, pointerEvents: 'none' }} aria-hidden>
         <ShareCard ref={shareCardRef} persona={persona} zodiac={zodiac} llmPersona={llmPersona} />
       </div>
 
-      {/* Sticky top bar */}
-      <div className="sticky top-0 z-20 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200 dark:border-gray-800 px-4 py-2">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 flex-wrap">
-          <button
-            onClick={() => navigate('/quiz')}
-            className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          >
-            ← Continue quiz
-          </button>
-          <div className="flex items-center gap-2">
-            {zodiac && <ZodiacBadge sign={zodiac} />}
-            <button
-              onClick={handleShare}
-              className="text-xs px-3 py-1.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Share card
-            </button>
-            <button
-              onClick={() => navigate('/refine')}
-              className="text-xs px-3 py-1.5 border border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 rounded-lg font-medium transition-colors"
-            >
-              Refine →
-            </button>
+      {/* Sticky header */}
+      <div style={{ background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(6px)', borderBottom: '1px solid var(--card-border)', padding: '12px 20px', position: 'sticky', top: 0, zIndex: 20 }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <button className="ss-topbtn" onClick={() => navigate('/quiz')}>← Continue quiz</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {zodiac && <ZodiacBadge sign={zodiac} variant="chip" />}
+            <button className="ss-cta ss-cta-primary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={handleShare}>Share card</button>
+            <button className="ss-cta ss-cta-secondary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => navigate('/refine')}>Refine →</button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-10">
-        <PersonaHeader persona={persona} zodiac={zodiac} />
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '8px 22px 70px' }}>
+        <PersonaHeader persona={persona} />
+        <div className="ss-divider" style={{ margin: '8px 0 34px' }} />
 
-        {/* Archetype description */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6">
-          <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{persona.archetype.description}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 44 }}>
+          {zodiac && <ZodiacBadge sign={zodiac} variant="full" />}
+
+          {/* AI Portrait */}
+          {zodiac ? (
+            <LLMPersona
+              scores={result.scores}
+              zodiac={zodiac}
+              archetype={persona.archetype}
+              identitySentence={persona.identitySentence}
+              stored={llmPersona}
+              onResult={setLLMPersona}
+            />
+          ) : (
+            <div className="ss-card" style={{ padding: '26px', textAlign: 'center', borderStyle: 'dashed', borderColor: 'rgba(182,130,53,.4)' }}>
+              <div className="kicker">Illustrated</div>
+              <p style={{ fontSize: 14, color: 'var(--ink-muted)', marginTop: 8 }}>
+                Add your date of birth on the{' '}
+                <button className="ss-link" onClick={() => navigate('/')}>home page</button>{' '}
+                to unlock your AI-generated name and portrait.
+              </p>
+            </div>
+          )}
+
+          {/* Story studio — once a portrait/persona exists */}
+          {llmPersona && (
+            <StoryStudio
+              scores={result.scores}
+              personaName={llmPersona.title || persona.archetype.name}
+              identitySentence={persona.identitySentence}
+              careerSuggestions={persona.careers.slice(0, 3).flatMap(c => c.family.roles)}
+              coverImage={llmPersona.imageUrl}
+              story={story}
+              onStory={setStory}
+            />
+          )}
+
+          <RadarPanel scores={result.scores} />
+          <PoliticalCompass scores={result.scores} />
+          <AxisBars scores={result.scores} />
+          <TemperamentPanel temperament={persona.temperament} />
+          <HumorPanel styles={persona.humorStyles} />
+          <FaithPanel faith={persona.faith} />
+
+          {/* Kindred minds */}
+          <section aria-label="Kindred minds">
+            <div style={{ textAlign: 'center', marginBottom: 22 }}>
+              <div className="kicker">Kindred minds</div>
+              <h2 style={{ fontSize: 34, margin: '6px 0 0' }}>Thinkers &amp; Doers Who Share Your Tendencies</h2>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {persona.figures.map(m => <FigureMatchCard key={m.figure.id} match={m} />)}
+            </div>
+          </section>
+
+          <CareerPanel careers={persona.careers} />
+          <CountryPanel countries={persona.countries} />
+
+          {persona.timeRecommendations.length > 0 && (
+            <section aria-label="How to spend your time">
+              <div style={{ textAlign: 'center', marginBottom: 22 }}>
+                <h2 style={{ fontSize: 30 }}>How to Spend Your Time</h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
+                {persona.timeRecommendations.map((rec, i) => (
+                  <div key={i} className="ss-card" style={{ padding: '22px 24px' }}>
+                    <p style={{ fontSize: 14.5, lineHeight: 1.62, color: 'var(--ink-2)' }}>{rec}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {persona.introductions.length > 0 && (
+            <section aria-label="How to introduce yourself">
+              <div style={{ textAlign: 'center', marginBottom: 22 }}>
+                <h2 style={{ fontSize: 30 }}>How to Introduce Yourself</h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
+                {INTRO_CONTEXTS.map((ctx, i) => (
+                  <div key={ctx} className="ss-card" style={{ padding: '22px 24px' }}>
+                    <div className="kicker" style={{ fontSize: 12, letterSpacing: '.08em', marginBottom: 8 }}>{ctx}</div>
+                    <p className="font-display" style={{ fontStyle: 'italic', fontSize: 17, lineHeight: 1.5, color: 'var(--ink-3)' }}>“{persona.introductions[i]}”</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <PartyMatcher
+            economic={result.scores['economicAxis']?.score ?? 0}
+            social={result.scores['socialAxis']?.score ?? 0}
+            lowConfidence={(result.scores['economicAxis']?.confidence ?? 0) < 0.3 || (result.scores['socialAxis']?.confidence ?? 0) < 0.3}
+          />
         </div>
 
-        {/* AI Portrait — shown when zodiac is set; otherwise prompt to add birthday */}
-        {zodiac ? (
-          <LLMPersona
-            scores={result.scores}
-            zodiac={zodiac}
-            archetype={persona.archetype}
-            identitySentence={persona.identitySentence}
-            stored={llmPersona}
-            onResult={setLLMPersona}
-          />
-        ) : (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-violet-200 dark:border-violet-800 p-6 text-center">
-            <div className="text-3xl mb-2">✨</div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Add your date of birth on the{' '}
-              <button onClick={() => navigate('/')} className="text-violet-600 dark:text-violet-400 hover:underline">
-                home page
-              </button>{' '}
-              to unlock your AI-generated name and DALL-E portrait.
-            </p>
+        <div style={{ marginTop: 44, textAlign: 'center' }}>
+          <Disclaimer compact />
+          <div style={{ marginTop: 18 }}>
+            <button className="ss-cta ss-cta-secondary" onClick={() => navigate('/quiz')}>Keep answering to sharpen your portrait</button>
           </div>
-        )}
-
-        {/* Zodiac full card */}
-        {zodiac && (
-          <section aria-label="Zodiac profile">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Your Zodiac Profile</h2>
-            <ZodiacBadge sign={zodiac} size="lg" />
-          </section>
-        )}
-
-        <RadarPanel scores={result.scores} />
-        <PoliticalCompass scores={result.scores} />
-        <AxisBars scores={result.scores} />
-
-        {/* Historical figure matches */}
-        <section aria-label="Historical figure matches">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-            Thinkers &amp; Doers Who Share Your Tendencies
-          </h2>
-          <div className="space-y-4">
-            {persona.figures.map((m, i) => (
-              <FigureMatchCard key={m.figure.id} match={m} rank={i} />
-            ))}
-          </div>
-        </section>
-
-        <CareerPanel careers={persona.careers} />
-        <CountryPanel countries={persona.countries} />
-
-        {persona.timeRecommendations.length > 0 && (
-          <section aria-label="How to spend your time">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">How to Spend Your Time</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {persona.timeRecommendations.map((rec, i) => (
-                <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{rec}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {persona.introductions.length > 0 && (
-          <section aria-label="How to introduce yourself">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">How to Introduce Yourself</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {(['At a party', 'At work', 'On a bio'] as const).map((ctx, i) => (
-                <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4">
-                  <p className="text-xs font-semibold text-violet-600 dark:text-violet-400 mb-2">{ctx}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 italic">"{persona.introductions[i]}"</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <Disclaimer compact />
-
-        <div className="text-center pb-8">
-          <p className="text-xs text-gray-400 mb-4">
-            Results reflect patterns in your own answers — not predictions, diagnoses, or judgements.
-          </p>
-          <button
-            onClick={() => navigate('/quiz')}
-            className="px-6 py-2 border border-gray-300 dark:border-gray-700 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
-            Keep answering to sharpen your portrait
-          </button>
         </div>
       </div>
     </div>

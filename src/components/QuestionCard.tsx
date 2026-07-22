@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Lightbulb, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import type { Answer } from '../engine/scoring';
 import type { Question } from '../data/questions';
 import { generateExample } from '../services/openai';
 import { getStoredApiKey, saveApiKey } from '../store/useStore';
+
+// Presented top-to-bottom, most-agree first. `key` is the 1–5 keyboard shortcut.
+const OPTIONS: { value: Answer; label: string; key: string; color: string }[] = [
+  { value: 'strongly_agree', label: 'Strongly Agree', key: '1', color: '#2f7d54' },
+  { value: 'agree', label: 'Agree', key: '2', color: '#5a9b72' },
+  { value: 'no_opinion', label: 'No Opinion', key: '3', color: '#8a857a' },
+  { value: 'disagree', label: 'Disagree', key: '4', color: '#c26a54' },
+  { value: 'strongly_disagree', label: 'Strongly Disagree', key: '5', color: '#b23b3b' },
+];
 
 interface Props {
   question: Question;
@@ -13,9 +22,11 @@ interface Props {
   onNext: () => void;
   hasPrev: boolean;
   hasNext: boolean;
+  groupColor: string;
+  groupLabel: string;
 }
 
-export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasPrev, hasNext }: Props) {
+export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasPrev, hasNext, groupColor, groupLabel }: Props) {
   const [apiKey, setApiKey] = useState(() => getStoredApiKey());
   const [showKey, setShowKey] = useState(false);
   const [showExample, setShowExample] = useState(false);
@@ -32,9 +43,8 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === 'y' || e.key === 'Y') onAnswer('yes');
-      else if (e.key === 'n' || e.key === 'N') onAnswer('no');
-      else if (e.key === 's' || e.key === 'S') onAnswer('skip');
+      const opt = OPTIONS.find(o => o.key === e.key);
+      if (opt) onAnswer(opt.value);
       else if (e.key === 'ArrowRight' && hasNext) onNext();
       else if (e.key === 'ArrowLeft' && hasPrev) onPrev();
     }
@@ -69,71 +79,66 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
     if (next && !example && !loadingExample && apiKey.trim()) fetchExample();
   }
 
-  const baseBtn = 'flex-1 py-4 px-4 rounded-xl font-semibold text-base transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2';
-
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 p-6 sm:p-10 w-full max-w-2xl mx-auto">
-      <p className="text-xl sm:text-2xl font-medium text-gray-800 dark:text-gray-100 leading-relaxed mb-4 text-center min-h-[6rem] flex items-center justify-center">
+    <div
+      style={{
+        width: '100%', maxWidth: 680, background: '#fff', border: '1px solid var(--card-border)',
+        borderRadius: 5, boxShadow: '0 12px 32px rgba(45,43,43,.09)', padding: '52px 48px 40px',
+      }}
+    >
+      {/* Domain pill */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
+        <span className="font-display" style={{ fontWeight: 600, fontSize: 11, letterSpacing: '.22em', textTransform: 'uppercase', color: groupColor, display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: groupColor }} />
+          {groupLabel}
+        </span>
+      </div>
+
+      {/* Question */}
+      <p className="font-display" style={{ fontWeight: 400, fontSize: 34, lineHeight: 1.22, textAlign: 'center', color: 'var(--ink)', margin: 0, minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', textWrap: 'pretty' }}>
         {question.text}
       </p>
 
-      <div className="flex justify-center mb-6">
-        <button
-          onClick={handleToggleExample}
-          className="flex items-center gap-1.5 text-xs text-violet-500 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors"
-        >
-          <Lightbulb className="w-3.5 h-3.5" aria-hidden />
-          {showExample ? 'Hide example' : "Not sure what this means? Give an example"}
+      {/* Example link */}
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '18px 0 26px' }}>
+        <button className="ss-link" style={{ fontSize: 13 }} onClick={handleToggleExample}>
+          {showExample ? 'Hide example' : 'Not sure what this means? Give an example'}
         </button>
       </div>
 
       {showExample && (
-        <div className="mb-6 bg-violet-50 dark:bg-violet-950/40 border border-violet-100 dark:border-violet-900 rounded-xl p-4 text-sm text-gray-700 dark:text-gray-300">
+        <div style={{ marginBottom: 26, background: 'var(--tint-gold)', border: '1px solid rgba(182,130,53,.3)', borderRadius: 4, padding: 16, fontSize: 14, color: 'var(--ink-2)' }}>
           {loadingExample ? (
-            <div className="flex items-center gap-2 text-violet-500">
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
-              Thinking of an example…
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gold-deep)' }}>
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Thinking of an example…
             </div>
           ) : example ? (
-            <div className="space-y-2">
-              <p className="leading-relaxed">{example}</p>
-              <button
-                onClick={fetchExample}
-                className="text-xs text-violet-600 hover:text-violet-800 dark:text-violet-400 transition-colors"
-              >
-                Regenerate
-              </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ lineHeight: 1.6 }}>{example}</p>
+              <button className="ss-link" style={{ fontSize: 12, alignSelf: 'flex-start' }} onClick={fetchExample}>Regenerate</button>
             </div>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>
                 Enter your OpenAI API key to generate a real-life example. Your key is stored only in your browser.
               </p>
-              {exampleError && <p className="text-sm text-red-500 dark:text-red-400">{exampleError}</p>}
-              <div className="relative">
+              {exampleError && <p style={{ fontSize: 13, color: 'var(--no)' }}>{exampleError}</p>}
+              <div style={{ position: 'relative' }}>
                 <input
+                  className="ss-input"
                   type={showKey ? 'text' : 'password'}
                   value={apiKey}
                   onChange={e => setApiKey(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && apiKey.trim() && fetchExample()}
                   placeholder="sk-..."
-                  className="w-full px-3 py-2 pr-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                  style={{ paddingRight: 36 }}
                   aria-label="OpenAI API key"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowKey(v => !v)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                  aria-label={showKey ? 'Hide key' : 'Show key'}
-                >
+                <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }} aria-label={showKey ? 'Hide key' : 'Show key'}>
                   {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <button
-                onClick={fetchExample}
-                disabled={!apiKey.trim()}
-                className="text-xs px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors"
-              >
+              <button className="ss-cta ss-cta-primary" style={{ fontSize: 13, padding: '7px 16px', alignSelf: 'flex-start' }} onClick={fetchExample} disabled={!apiKey.trim()}>
                 {exampleError ? 'Try again' : 'Get example'}
               </button>
             </div>
@@ -141,59 +146,26 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
         </div>
       )}
 
-      <div className="flex gap-3 mb-8">
-        <button
-          onClick={() => onAnswer('yes')}
-          aria-pressed={current === 'yes'}
-          className={`${baseBtn} focus:ring-green-400 ${
-            current === 'yes'
-              ? 'bg-green-500 text-white shadow-md scale-105'
-              : 'bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900 border border-green-200 dark:border-green-800'
-          }`}
-        >
-          <span aria-hidden>✓</span> Yes <kbd className="ml-1 text-xs opacity-60">[Y]</kbd>
-        </button>
-        <button
-          onClick={() => onAnswer('no')}
-          aria-pressed={current === 'no'}
-          className={`${baseBtn} focus:ring-red-400 ${
-            current === 'no'
-              ? 'bg-red-500 text-white shadow-md scale-105'
-              : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900 border border-red-200 dark:border-red-800'
-          }`}
-        >
-          <span aria-hidden>✗</span> No <kbd className="ml-1 text-xs opacity-60">[N]</kbd>
-        </button>
-        <button
-          onClick={() => onAnswer('skip')}
-          aria-pressed={current === 'skip'}
-          className={`${baseBtn} focus:ring-gray-400 ${
-            current === 'skip'
-              ? 'bg-gray-400 text-white shadow-md scale-105'
-              : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
-          }`}
-        >
-          Skip <kbd className="ml-1 text-xs opacity-60">[S]</kbd>
-        </button>
+      {/* Answer pills */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 26 }}>
+        {OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            className="ss-answer"
+            data-sel={current === opt.value ? '1' : '0'}
+            aria-pressed={current === opt.value}
+            style={{ ['--ac' as string]: opt.color }}
+            onClick={e => { onAnswer(opt.value); e.currentTarget.blur(); }}
+          >
+            {opt.label}
+            <span className="ss-kbd">[{opt.key}]</span>
+          </button>
+        ))}
       </div>
 
-      <div className="flex justify-between">
-        <button
-          onClick={onPrev}
-          disabled={!hasPrev}
-          className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Previous question"
-        >
-          ← Prev <kbd className="text-xs opacity-60">[←]</kbd>
-        </button>
-        <button
-          onClick={onNext}
-          disabled={!hasNext}
-          className="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          aria-label="Next question"
-        >
-          Next → <kbd className="text-xs opacity-60">[→]</kbd>
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+        <button className="ss-topbtn" onClick={onPrev} disabled={!hasPrev} aria-label="Previous question">← Prev</button>
+        <button className="ss-topbtn" onClick={onNext} disabled={!hasNext} aria-label="Next question">Next →</button>
       </div>
     </div>
   );
