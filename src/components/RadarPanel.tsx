@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { DimensionScore } from '../engine/scoring';
 import type { DimensionKey } from '../data/dimensions';
 import { DIMENSION_MAP } from '../data/dimensions';
@@ -42,32 +43,46 @@ const FRAMEWORK_INFO: Record<string, string> = {
 };
 
 function Radar({ data }: { data: RadarDatum[] }) {
+  const [sel, setSel] = useState<number | null>(null);
   const S = 230, c = S / 2, R = S * 0.33, LR = S * 0.46, n = data.length;
   const ang = (i: number) => -Math.PI / 2 + (i * 2 * Math.PI) / n;
   const pt = (a: number, r: number): [number, number] => [c + r * Math.cos(a), c + r * Math.sin(a)];
   const poly = data.map((d, i) => pt(ang(i), R * d.value / 100).map(v => v.toFixed(1)).join(',')).join(' ');
+  const active = sel !== null ? data[sel] : null;
 
   return (
-    <svg viewBox={`0 0 ${S} ${S}`} style={{ width: '100%', maxWidth: 230, display: 'block', margin: '0 auto', overflow: 'visible' }}>
-      {[0.25, 0.5, 0.75, 1].map((f, ri) => (
-        <polygon key={`r${ri}`} points={data.map((_, i) => pt(ang(i), R * f).map(v => v.toFixed(1)).join(',')).join(' ')} fill="none" stroke="var(--ring)" strokeWidth={1} />
-      ))}
-      {data.map((_, i) => { const [x, y] = pt(ang(i), R); return <line key={`a${i}`} x1={c} y1={c} x2={x} y2={y} stroke="var(--spoke)" strokeWidth={1} />; })}
-      <polygon points={poly} fill="rgba(182,130,53,.16)" stroke="var(--gold)" strokeWidth={1.5} />
-      {data.map((d, i) => { const [x, y] = pt(ang(i), R * d.value / 100); return <circle key={`d${i}`} cx={x} cy={y} r={2.4} fill="var(--gold)" />; })}
-      {data.map((d, i) => {
-        const [x, y] = pt(ang(i), LR);
-        return (
-          <text key={`t${i}`} x={x} y={y} fill="#8a8272" fontSize={8.5} fontFamily="Lora" textAnchor={x < c - 3 ? 'end' : x > c + 3 ? 'start' : 'middle'} dominantBaseline="middle">{d.label}</text>
-        );
-      })}
-      {/* invisible hover targets for per-spoke detail */}
-      {data.map((d, i) => { const [x, y] = pt(ang(i), R * d.value / 100); return (
-        <circle key={`h${i}`} cx={x} cy={y} r={11} fill="transparent">
-          <title>{d.full}: {d.value}/100{d.desc ? ` — ${d.desc}` : ''}</title>
-        </circle>
-      ); })}
-    </svg>
+    <div>
+      <svg viewBox={`0 0 ${S} ${S}`} style={{ width: '100%', maxWidth: 230, display: 'block', margin: '0 auto', overflow: 'visible' }}>
+        {[0.25, 0.5, 0.75, 1].map((f, ri) => (
+          <polygon key={`r${ri}`} points={data.map((_, i) => pt(ang(i), R * f).map(v => v.toFixed(1)).join(',')).join(' ')} fill="none" stroke="var(--ring)" strokeWidth={1} />
+        ))}
+        {data.map((_, i) => { const [x, y] = pt(ang(i), R); return <line key={`a${i}`} x1={c} y1={c} x2={x} y2={y} stroke="var(--spoke)" strokeWidth={1} />; })}
+        <polygon points={poly} fill="rgba(182,130,53,.16)" stroke="var(--gold)" strokeWidth={1.5} />
+        {data.map((d, i) => { const [x, y] = pt(ang(i), R * d.value / 100); return <circle key={`d${i}`} cx={x} cy={y} r={i === sel ? 4 : 2.4} fill="var(--gold)" stroke={i === sel ? '#fff' : 'none'} strokeWidth={i === sel ? 1.2 : 0} />; })}
+        {data.map((d, i) => {
+          const [x, y] = pt(ang(i), LR);
+          return (
+            <text key={`t${i}`} x={x} y={y} fill="#8a8272" fontSize={8.5} fontFamily="Lora" textAnchor={x < c - 3 ? 'end' : x > c + 3 ? 'start' : 'middle'} dominantBaseline="middle">{d.label}</text>
+          );
+        })}
+        {/* tap/hover targets for per-spoke detail */}
+        {data.map((d, i) => { const [x, y] = pt(ang(i), R * d.value / 100); return (
+          <circle key={`h${i}`} cx={x} cy={y} r={12} fill="transparent" style={{ cursor: 'pointer' }} onClick={() => setSel(s => (s === i ? null : i))}>
+            <title>{d.full}: {d.value}/100{d.desc ? ` — ${d.desc}` : ''}</title>
+          </circle>
+        ); })}
+      </svg>
+      <p style={{ minHeight: 44, fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink-2)', margin: '8px 4px 0', textAlign: 'center' }}>
+        {active ? (
+          <>
+            <span className="font-display" style={{ fontWeight: 600, color: 'var(--ink)' }}>{active.full} · {active.value}/100</span>
+            {active.desc ? ` — ${active.desc}` : ''}
+          </>
+        ) : (
+          <span style={{ color: 'var(--ink-faint)' }}>Tap a point for detail.</span>
+        )}
+      </p>
+    </div>
   );
 }
 

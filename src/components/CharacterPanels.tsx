@@ -1,4 +1,5 @@
 import type { TemperamentResult, HumorStyle, FaithResult } from '../engine/synthesis';
+import { InfoTooltip } from './InfoTooltip';
 
 function Bar({ pct, muted = false }: { pct: number; muted?: boolean }) {
   return (
@@ -61,8 +62,11 @@ export function HumorPanel({ styles }: { styles: HumorStyle[] }) {
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           {styles.map((s, i) => (
-            <div key={s.key} title={s.description} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span className="font-display" style={{ width: 138, flex: 'none', fontWeight: 600, fontSize: 13.5, color: i === 0 && !faint ? 'var(--gold-deep)' : 'var(--ink-muted)' }}>{s.label}</span>
+            <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="font-display" style={{ width: 150, flex: 'none', fontWeight: 600, fontSize: 13.5, color: i === 0 && !faint ? 'var(--gold-deep)' : 'var(--ink-muted)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                {s.label}
+                <InfoTooltip text={s.description} label={`About ${s.label}`} align="left" />
+              </span>
               <Bar pct={s.score} muted={i !== 0 || faint} />
               <span className="tnum" style={{ width: 34, flex: 'none', textAlign: 'right', fontSize: 12, color: 'var(--ink-muted-2)' }}>{s.score}</span>
             </div>
