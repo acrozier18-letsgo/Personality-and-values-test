@@ -55,7 +55,8 @@ export function InfoTooltip({ text, label, align = 'center' }: Props) {
           style={{
             position: 'absolute', bottom: '100%', marginBottom: 8, zIndex: 30,
             width: 'min(15rem, 74vw)', borderRadius: 8, background: '#201f1d', color: '#f4f1ea',
-            padding: '10px 12px', fontSize: 12, lineHeight: 1.5, textAlign: 'left', fontWeight: 400,
+            padding: '10px 12px', fontSize: 12, lineHeight: 1.5, textAlign: 'center', fontWeight: 400,
+            whiteSpace: 'normal', letterSpacing: 'normal', textTransform: 'none',
             boxShadow: '0 6px 22px rgba(0,0,0,.24)', ...alignStyle,
           }}
         >

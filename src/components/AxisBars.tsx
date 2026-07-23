@@ -15,14 +15,10 @@ function AxisBar({ dim, score, confidence }: { dim: typeof DIMENSIONS[number]; s
   const rightPct = score > 0 ? score : 0;
 
   return (
-    <div style={{ marginBottom: 16, opacity: low ? 0.5 : 1 }} aria-label={`${dim.label}: ${score}`}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 10.5, color: 'var(--ink-muted-2)', marginBottom: 6, gap: 8 }}>
-        <span style={{ maxWidth: '36%', lineHeight: 1.1 }}>{dim.negativeLabel}</span>
-        <span className="font-display" style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--ink)', textAlign: 'center', display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-          {dim.label}
-          <InfoTooltip text={dim.description} label={`About ${dim.label}`} />
-        </span>
-        <span style={{ maxWidth: '36%', textAlign: 'right', lineHeight: 1.1 }}>{dim.positiveLabel}</span>
+    <div style={{ marginBottom: 18, opacity: low ? 0.5 : 1 }} aria-label={`${dim.label}: ${score}`}>
+      <div className="font-display" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, fontWeight: 600, fontSize: 13, color: 'var(--ink)', textAlign: 'center', marginBottom: 6, lineHeight: 1.2 }}>
+        {dim.label}
+        <InfoTooltip text={dim.description} label={`About ${dim.label}`} />
       </div>
       <div style={{ position: 'relative', height: 8, borderRadius: 2, background: 'var(--track)', display: 'flex' }}>
         <div style={{ width: '50%', display: 'flex', justifyContent: 'flex-end' }}>
@@ -33,7 +29,11 @@ function AxisBar({ dim, score, confidence }: { dim: typeof DIMENSIONS[number]; s
           <div style={{ height: '100%', width: `${rightPct}%`, background: 'var(--gold)', borderRadius: '0 2px 2px 0' }} />
         </div>
       </div>
-      {low && <div style={{ fontSize: 10, fontStyle: 'italic', color: '#b98b3a', marginTop: 4 }}>needs more answers</div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 10, color: 'var(--ink-muted-2)', marginTop: 5 }}>
+        <span style={{ maxWidth: '48%', lineHeight: 1.15 }}>{dim.negativeLabel}</span>
+        <span style={{ maxWidth: '48%', textAlign: 'right', lineHeight: 1.15 }}>{dim.positiveLabel}</span>
+      </div>
+      {low && <div style={{ fontSize: 10, fontStyle: 'italic', color: '#b98b3a', marginTop: 4, textAlign: 'center' }}>needs more answers</div>}
     </div>
   );
 }
