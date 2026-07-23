@@ -6,7 +6,9 @@ import type { Archetype } from '../data/archetypes';
 
 // Optional shared proxy (Cloudflare Worker) that holds the site's OpenAI key
 // server-side. When configured, visitors can use AI features without their own key.
-const PROXY_URL = (import.meta.env.VITE_OPENAI_PROXY_URL ?? '').replace(/\/$/, '');
+// Tolerate a value entered without a scheme (e.g. "foo.workers.dev").
+const RAW_PROXY = (import.meta.env.VITE_OPENAI_PROXY_URL ?? '').trim().replace(/\/+$/, '');
+const PROXY_URL = RAW_PROXY && !/^https?:\/\//i.test(RAW_PROXY) ? `https://${RAW_PROXY}` : RAW_PROXY;
 
 /** True when a shared key is available, so AI features work without the user entering one. */
 export const SHARED_AI = Boolean(PROXY_URL);
