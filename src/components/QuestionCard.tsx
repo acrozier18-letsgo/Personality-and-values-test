@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import type { Answer } from '../engine/scoring';
 import type { Question } from '../data/questions';
-import { generateExample } from '../services/openai';
+import { generateExample, SHARED_AI } from '../services/openai';
 import { getStoredApiKey, saveApiKey } from '../store/useStore';
 
 // Presented top-to-bottom, most-agree first. `key` is the 1–5 keyboard shortcut.
@@ -53,8 +53,8 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
   }, [onAnswer, onNext, onPrev, hasNext, hasPrev]);
 
   async function fetchExample() {
-    if (!apiKey.trim()) return;
-    saveApiKey(apiKey.trim());
+    if (!apiKey.trim() && !SHARED_AI) return;
+    if (apiKey.trim()) saveApiKey(apiKey.trim());
     setLoadingExample(true);
     setExampleError(null);
     try {
@@ -76,7 +76,7 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
   function handleToggleExample() {
     const next = !showExample;
     setShowExample(next);
-    if (next && !example && !loadingExample && apiKey.trim()) fetchExample();
+    if (next && !example && !loadingExample && (apiKey.trim() || SHARED_AI)) fetchExample();
   }
 
   return (
@@ -119,26 +119,30 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <p style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>
-                Enter your OpenAI API key to generate a real-life example. Your key is stored only in your browser.
-              </p>
+              {!SHARED_AI && (
+                <p style={{ fontSize: 12.5, color: 'var(--ink-muted)' }}>
+                  Enter your OpenAI API key to generate a real-life example. Your key is stored only in your browser.
+                </p>
+              )}
               {exampleError && <p style={{ fontSize: 13, color: 'var(--no)' }}>{exampleError}</p>}
-              <div style={{ position: 'relative' }}>
-                <input
-                  className="ss-input"
-                  type={showKey ? 'text' : 'password'}
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && apiKey.trim() && fetchExample()}
-                  placeholder="sk-..."
-                  style={{ paddingRight: 36 }}
-                  aria-label="OpenAI API key"
-                />
-                <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }} aria-label={showKey ? 'Hide key' : 'Show key'}>
-                  {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <button className="ss-cta ss-cta-primary" style={{ fontSize: 13, padding: '7px 16px', alignSelf: 'flex-start' }} onClick={fetchExample} disabled={!apiKey.trim()}>
+              {!SHARED_AI && (
+                <div style={{ position: 'relative' }}>
+                  <input
+                    className="ss-input"
+                    type={showKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && apiKey.trim() && fetchExample()}
+                    placeholder="sk-..."
+                    style={{ paddingRight: 36 }}
+                    aria-label="OpenAI API key"
+                  />
+                  <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }} aria-label={showKey ? 'Hide key' : 'Show key'}>
+                    {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              )}
+              <button className="ss-cta ss-cta-primary" style={{ fontSize: 13, padding: '7px 16px', alignSelf: 'flex-start' }} onClick={fetchExample} disabled={!apiKey.trim() && !SHARED_AI}>
                 {exampleError ? 'Try again' : 'Get example'}
               </button>
             </div>

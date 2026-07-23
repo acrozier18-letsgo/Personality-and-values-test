@@ -4,11 +4,22 @@ import type { DimensionScore } from '../engine/scoring';
 import type { ZodiacSign } from '../data/zodiac';
 import type { Archetype } from '../data/archetypes';
 
+// Optional shared proxy (Cloudflare Worker) that holds the site's OpenAI key
+// server-side. When configured, visitors can use AI features without their own key.
+const PROXY_URL = (import.meta.env.VITE_OPENAI_PROXY_URL ?? '').replace(/\/$/, '');
+
+/** True when a shared key is available, so AI features work without the user entering one. */
+export const SHARED_AI = Boolean(PROXY_URL);
+
 // The OpenAI SDK is ~500 kB; load it lazily only when a call is actually made,
 // so it stays out of the initial bundle.
 async function getClient(apiKey: string) {
   const { default: OpenAI } = await import('openai');
-  return new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+  // A personal key always calls OpenAI directly (their own quota).
+  if (apiKey) return new OpenAI({ apiKey, dangerouslyAllowBrowser: true });
+  // Otherwise route through the shared proxy, which injects the real key.
+  if (PROXY_URL) return new OpenAI({ apiKey: 'via-proxy', baseURL: PROXY_URL + '/v1', dangerouslyAllowBrowser: true });
+  throw new Error('No API key available.');
 }
 
 export interface LLMPersonaResult {

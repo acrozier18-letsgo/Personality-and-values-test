@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Loader2, RefreshCw, Eye, EyeOff } from 'lucide-react';
-import { generateLLMPersona } from '../services/openai';
+import { generateLLMPersona, SHARED_AI } from '../services/openai';
 import { getStoredApiKey, saveApiKey } from '../store/useStore';
 import type { ZodiacSign } from '../data/zodiac';
 import type { Archetype } from '../data/archetypes';
@@ -24,9 +24,11 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
   const [error, setError] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
+  const canGenerate = Boolean(apiKey.trim()) || SHARED_AI;
+
   async function generate() {
-    if (!apiKey.trim()) return;
-    saveApiKey(apiKey.trim());
+    if (!canGenerate) return;
+    if (apiKey.trim()) saveApiKey(apiKey.trim());
     setLoading(true);
     setError(null);
     try {
@@ -84,8 +86,9 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
       ) : (
         <div className="ss-card" style={{ padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <p style={{ fontSize: 14, color: 'var(--ink-muted)', lineHeight: 1.6 }}>
-            Enter your OpenAI API key to generate a unique name and an AI illustration for your persona.
-            Your key is stored only in your browser and never sent anywhere except directly to OpenAI.
+            {SHARED_AI
+              ? 'Generate a unique name and an AI illustration for your persona — just tap the button. Optionally, enter your own OpenAI key below to use your own quota.'
+              : 'Enter your OpenAI API key to generate a unique name and an AI illustration for your persona. Your key is stored only in your browser and never sent anywhere except directly to OpenAI.'}
           </p>
           <div style={{ position: 'relative' }}>
             <input
@@ -93,8 +96,8 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
               type={showKey ? 'text' : 'password'}
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && apiKey.trim() && generate()}
-              placeholder="sk-..."
+              onKeyDown={e => e.key === 'Enter' && canGenerate && generate()}
+              placeholder={SHARED_AI ? 'sk-… (optional — your own key)' : 'sk-...'}
               style={{ paddingRight: 40 }}
               aria-label="OpenAI API key"
             />
@@ -103,7 +106,7 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
             </button>
           </div>
           {error && <p style={{ fontSize: 13, color: 'var(--no)' }}>{error}</p>}
-          <button className="ss-cta ss-cta-primary" style={{ width: '100%' }} onClick={generate} disabled={!apiKey.trim() || loading}>
+          <button className="ss-cta ss-cta-primary" style={{ width: '100%' }} onClick={generate} disabled={!canGenerate || loading}>
             {loading ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Generating your portrait…</>) : 'Generate AI Portrait'}
           </button>
           {loading && (

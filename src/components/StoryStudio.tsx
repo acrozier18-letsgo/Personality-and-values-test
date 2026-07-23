@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Loader2, Download, RefreshCw, Wand2, Eye, EyeOff } from 'lucide-react';
-import { generateStory } from '../services/openai';
+import { generateStory, SHARED_AI } from '../services/openai';
 import type { StoryParams, StoryResult } from '../services/openai';
 import { getStoredApiKey, saveApiKey } from '../store/useStore';
 import { storyToPdf } from '../export/toPdf';
@@ -64,8 +64,8 @@ export function StoryStudio({ scores, personaName, identitySentence, careerSugge
     : settingChoice;
 
   async function generate() {
-    if (!apiKey.trim()) { setError('Add your OpenAI API key to write a story.'); return; }
-    saveApiKey(apiKey.trim());
+    if (!apiKey.trim() && !SHARED_AI) { setError('Add your OpenAI API key to write a story.'); return; }
+    if (apiKey.trim()) saveApiKey(apiKey.trim());
     setLoading(true);
     setError(null);
     try {
@@ -178,7 +178,7 @@ export function StoryStudio({ scores, personaName, identitySentence, careerSugge
           </div>
         </div>
 
-        {!getStoredApiKey() && (
+        {!getStoredApiKey() && !SHARED_AI && (
           <div style={{ position: 'relative' }}>
             <input className="ss-input" type={showKey ? 'text' : 'password'} value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk-... (your OpenAI API key)" style={{ paddingRight: 40 }} aria-label="OpenAI API key" />
             <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }} aria-label={showKey ? 'Hide key' : 'Show key'}>

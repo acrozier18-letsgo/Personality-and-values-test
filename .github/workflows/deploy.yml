@@ -29,6 +29,10 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+        env:
+          # Set repo variable OPENAI_PROXY_URL to your Cloudflare Worker URL to
+          # enable the shared key. Left blank -> visitors bring their own key.
+          VITE_OPENAI_PROXY_URL: ${{ vars.OPENAI_PROXY_URL }}
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
