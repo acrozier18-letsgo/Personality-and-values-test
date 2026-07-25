@@ -31,6 +31,32 @@ export interface LLMPersonaResult {
   imagePrompt: string;  // for transparency
 }
 
+// ── Persona chat ("Talk to Yourself" / "Talk to Anti-You") ────────────────────
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Continue a persona chat. `systemPrompt` establishes the character (built from
+ * the user's — or inverted — trait profile); `history` is the running dialogue.
+ */
+export async function chatWithPersona(
+  apiKey: string,
+  systemPrompt: string,
+  history: ChatMessage[],
+): Promise<string> {
+  const client = await getClient(apiKey);
+  const resp = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'system', content: systemPrompt }, ...history],
+    temperature: 0.9,
+    max_tokens: 500,
+  });
+  return resp.choices[0].message.content?.trim() ?? '…';
+}
+
 export async function generateExample(apiKey: string, statement: string): Promise<string> {
   const client = await getClient(apiKey);
 

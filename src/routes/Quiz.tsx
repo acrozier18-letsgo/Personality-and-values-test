@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from '../store/useStore';
+import { useStore, isValidEmail } from '../store/useStore';
 import { QUESTIONS } from '../data/questions';
 import { QuestionCard } from '../components/QuestionCard';
 import { ProgressBar } from '../components/ProgressBar';
@@ -26,8 +26,13 @@ function answerColor(a: Answer | undefined): string {
 
 export default function Quiz() {
   const navigate = useNavigate();
-  const { answers, cursor, answer, goTo } = useStore();
+  const { answers, cursor, answer, goTo, email } = useStore();
   const [showReview, setShowReview] = useState(false);
+
+  // Require an email to take the assessment; send them back to sign in otherwise.
+  useEffect(() => {
+    if (!isValidEmail(email)) navigate('/', { replace: true });
+  }, [email, navigate]);
 
   const q = QUESTIONS[cursor];
   const group = GROUPS[q.group];

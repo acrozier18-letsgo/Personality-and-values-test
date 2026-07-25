@@ -18,6 +18,8 @@ import { LLMPersona } from '../components/LLMPersona';
 import { StoryStudio } from '../components/StoryStudio';
 import { TemperamentPanel, HumorPanel, FaithPanel } from '../components/CharacterPanels';
 import { PartyMatcher } from '../components/PartyMatcher';
+import { DataPortability } from '../components/DataPortability';
+import { PersonaChats } from '../components/PersonaChats';
 import { Disclaimer } from '../components/Disclaimer';
 import { toImage } from '../export/toImage';
 import { sharePersona } from '../export/share';
@@ -177,6 +179,10 @@ export default function Results() {
             social={result.scores['socialAxis']?.score ?? 0}
             lowConfidence={(result.scores['economicAxis']?.confidence ?? 0) < 0.3 || (result.scores['socialAxis']?.confidence ?? 0) < 0.3}
           />
+
+          <DataPortability persona={persona} result={result} />
+
+          <PersonaChats persona={persona} result={result} answers={answers} />
         </div>
 
         <div style={{ marginTop: 44, textAlign: 'center' }}>
