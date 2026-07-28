@@ -36,6 +36,14 @@ export function countAnswered(answers: Record<string, Answer>): number {
   return Object.values(answers).filter(isAnswered).length;
 }
 
+/** Share of questions that must be answered before the persona/results unlock. */
+export const PERSONA_UNLOCK_RATIO = 0.75;
+
+/** Minimum number of answered questions needed to unlock the persona. */
+export function personaUnlockThreshold(total: number): number {
+  return Math.ceil(total * PERSONA_UNLOCK_RATIO);
+}
+
 export interface DimensionScore {
   score: number;
   confidence: number;

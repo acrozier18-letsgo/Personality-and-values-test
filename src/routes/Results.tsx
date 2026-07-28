@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { QUESTIONS } from '../data/questions';
-import { scoreAnswers, countAnswered } from '../engine/scoring';
+import { scoreAnswers, countAnswered, personaUnlockThreshold } from '../engine/scoring';
 import { synthesize } from '../engine/synthesis';
 import { getZodiacFromDate } from '../data/zodiac';
 import { PersonaHeader } from '../components/PersonaHeader';
@@ -36,6 +36,8 @@ export default function Results() {
   const zodiac = useMemo(() => (birthdate ? getZodiacFromDate(birthdate) : null), [birthdate]);
 
   const answered = countAnswered(answers);
+  const threshold = personaUnlockThreshold(QUESTIONS.length);
+  const unlocked = answered >= threshold;
 
   async function handleShare() {
     if (!shareCardRef.current) return;
@@ -47,16 +49,25 @@ export default function Results() {
     }
   }
 
-  if (answered === 0) {
+  if (!unlocked) {
+    const remaining = threshold - answered;
+    const pct = Math.round((answered / QUESTIONS.length) * 100);
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 420 }}>
+        <div style={{ maxWidth: 460 }}>
           <div className="kicker" style={{ letterSpacing: '.3em' }}>Your persona</div>
           <h1 style={{ fontSize: 44, margin: '10px 0 12px' }}>Not yet drawn</h1>
-          <p style={{ color: 'var(--ink-2)', marginBottom: 24, lineHeight: 1.6 }}>
-            Answer at least a few questions and your portrait will take shape here.
+          <p style={{ color: 'var(--ink-2)', marginBottom: 10, lineHeight: 1.6 }}>
+            Your portrait unlocks once you’ve answered at least 75% of the questions — enough for a
+            reading you can trust.
           </p>
-          <button className="ss-cta ss-cta-primary" onClick={() => navigate('/quiz')}>Begin the journey →</button>
+          <p style={{ color: 'var(--ink-3)', marginBottom: 22, fontSize: 15 }}>
+            You’ve answered <strong>{answered}</strong> of {QUESTIONS.length} ({pct}%).{' '}
+            <strong>{remaining}</strong> more to go.
+          </p>
+          <button className="ss-cta ss-cta-primary" onClick={() => navigate('/quiz')}>
+            {answered === 0 ? 'Begin the journey →' : 'Keep answering →'}
+          </button>
         </div>
       </div>
     );

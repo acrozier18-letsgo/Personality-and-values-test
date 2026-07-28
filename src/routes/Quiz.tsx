@@ -5,7 +5,7 @@ import { QUESTIONS } from '../data/questions';
 import { QuestionCard } from '../components/QuestionCard';
 import { ProgressBar } from '../components/ProgressBar';
 import type { Answer } from '../engine/scoring';
-import { ANSWER_LABELS } from '../engine/scoring';
+import { ANSWER_LABELS, countAnswered, personaUnlockThreshold } from '../engine/scoring';
 
 const GROUPS: Record<string, { label: string; color: string }> = {
   A: { label: 'Personality', color: '#7c5cff' },
@@ -37,6 +37,9 @@ export default function Quiz() {
   const q = QUESTIONS[cursor];
   const group = GROUPS[q.group];
 
+  const answeredCount = countAnswered(answers);
+  const personaUnlocked = answeredCount >= personaUnlockThreshold(QUESTIONS.length);
+
   const handleAnswer = (val: Answer) => {
     answer(q.id, val);
     if (cursor < QUESTIONS.length - 1) goTo(cursor + 1);
@@ -53,7 +56,13 @@ export default function Quiz() {
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
             <button className="ss-cta ss-cta-secondary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => setShowReview(v => !v)}>Review</button>
-            <button className="ss-cta ss-cta-primary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => navigate('/results')}>See persona →</button>
+            <button
+              className="ss-cta ss-cta-primary"
+              style={{ fontSize: 13, padding: '7px 14px' }}
+              onClick={() => navigate('/results')}
+              disabled={!personaUnlocked}
+              title={personaUnlocked ? undefined : 'Answer at least 75% of the questions to unlock your persona'}
+            >See persona →</button>
           </div>
         </div>
       </div>

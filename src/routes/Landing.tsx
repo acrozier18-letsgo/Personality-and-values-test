@@ -8,7 +8,7 @@ import { ZodiacBadge } from '../components/ZodiacBadge';
 import { ChineseZodiacBadge } from '../components/ChineseZodiacBadge';
 import { Oculus } from '../components/Oculus';
 import { QUESTIONS } from '../data/questions';
-import { countAnswered } from '../engine/scoring';
+import { countAnswered, personaUnlockThreshold } from '../engine/scoring';
 import { getZodiacFromDate } from '../data/zodiac';
 import { getChineseZodiac } from '../data/chineseZodiac';
 
@@ -51,6 +51,8 @@ export default function Landing() {
   const answered = countAnswered(answers);
   const hasProgress = answered > 0;
   const pct = Math.round((answered / QUESTIONS.length) * 100);
+  const unlockThreshold = personaUnlockThreshold(QUESTIONS.length);
+  const personaUnlocked = answered >= unlockThreshold;
 
   const [emailInput, setEmailInput] = useState(email);
   const canBegin = isValidEmail(emailInput);
@@ -214,7 +216,12 @@ export default function Landing() {
             <button className="ss-cta ss-cta-primary" onClick={begin} disabled={!canBegin}>
               Continue · {pct}% answered →
             </button>
-            <button className="ss-cta ss-cta-secondary" onClick={() => navigate('/results')}>
+            <button
+              className="ss-cta ss-cta-secondary"
+              onClick={() => navigate('/results')}
+              disabled={!personaUnlocked}
+              title={personaUnlocked ? undefined : 'Answer at least 75% of the questions to unlock your persona'}
+            >
               View my persona →
             </button>
             <button
@@ -226,17 +233,18 @@ export default function Landing() {
             </button>
           </>
         ) : (
-          <>
-            <button className="ss-cta ss-cta-primary" onClick={begin} disabled={!canBegin}>Begin the journey →</button>
-            <button className="ss-cta ss-cta-secondary" onClick={() => navigate('/results')}>Preview a persona →</button>
-          </>
+          <button className="ss-cta ss-cta-primary" onClick={begin} disabled={!canBegin}>Begin the journey →</button>
         )}
       </div>
-      {!canBegin && (
+      {!canBegin ? (
         <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-muted)', marginTop: 12 }}>
           Enter your email above to begin the assessment.
         </p>
-      )}
+      ) : hasProgress && !personaUnlocked ? (
+        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-muted)', marginTop: 12 }}>
+          Your persona unlocks at 75% — {unlockThreshold - answered} more answer{unlockThreshold - answered === 1 ? '' : 's'} to go.
+        </p>
+      ) : null}
 
       {/* Saved versions */}
       <VersionHistory onLoad={() => navigate('/results')} />
