@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, Send, Eye, EyeOff } from 'lucide-react';
 import { chatWithPersona, SHARED_AI } from '../services/openai';
 import type { ChatMessage } from '../services/openai';
-import { getStoredApiKey, saveApiKey } from '../store/useStore';
+import { useStore } from '../store/useStore';
 import { scoreAnswers } from '../engine/scoring';
 import { synthesize } from '../engine/synthesis';
 import { invertAnswers, selfSystemPrompt, antiSystemPrompt } from '../engine/personaChat';
@@ -39,7 +39,8 @@ export function PersonaChats({ persona, result, answers }: Props) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState(() => getStoredApiKey());
+  const apiKey = useStore(s => s.apiKey);
+  const setApiKey = useStore(s => s.setApiKey);
   const [showKey, setShowKey] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +69,6 @@ export function PersonaChats({ persona, result, answers }: Props) {
   async function send(text: string) {
     const trimmed = text.trim();
     if (!trimmed || loading || !canChat) return;
-    if (apiKey.trim()) saveApiKey(apiKey.trim());
     setError(null);
     setInput('');
     const nextHistory: ChatMessage[] = [...threads[mode], { role: 'user', content: trimmed }];

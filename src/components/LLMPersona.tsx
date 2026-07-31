@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Loader2, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { generateLLMPersona, SHARED_AI } from '../services/openai';
-import { getStoredApiKey, saveApiKey } from '../store/useStore';
+import { useStore } from '../store/useStore';
 import type { ZodiacSign } from '../data/zodiac';
 import type { Archetype } from '../data/archetypes';
 import type { DimensionKey } from '../data/dimensions';
@@ -18,17 +18,19 @@ interface Props {
 }
 
 export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored, onResult }: Props) {
-  const [apiKey, setApiKey] = useState(() => getStoredApiKey());
+  const apiKey = useStore(s => s.apiKey);
+  const setApiKey = useStore(s => s.setApiKey);
   const [showKey, setShowKey] = useState(false);
+  const [showKeyField, setShowKeyField] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
-  const canGenerate = Boolean(apiKey.trim()) || SHARED_AI;
+  const keyReady = Boolean(apiKey.trim());
+  const canGenerate = keyReady || SHARED_AI;
 
   async function generate() {
     if (!canGenerate) return;
-    if (apiKey.trim()) saveApiKey(apiKey.trim());
     setLoading(true);
     setError(null);
     try {
@@ -87,24 +89,39 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
         <div className="ss-card" style={{ padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <p style={{ fontSize: 14, color: 'var(--ink-muted)', lineHeight: 1.6 }}>
             {SHARED_AI
-              ? 'Generate a unique name and an AI illustration for your persona — just tap the button. Optionally, enter your own OpenAI key below to use your own quota.'
-              : 'Enter your OpenAI API key to generate a unique name and an AI illustration for your persona. Your key is stored only in your browser and never sent anywhere except directly to OpenAI.'}
+              ? 'Generate a unique name and an AI illustration for your persona — just tap the button.'
+              : 'Generate a unique name and an AI illustration for your persona. Your key is stored only in your browser and never sent anywhere except directly to OpenAI.'}
           </p>
-          <div style={{ position: 'relative' }}>
-            <input
-              className="ss-input"
-              type={showKey ? 'text' : 'password'}
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && canGenerate && generate()}
-              placeholder={SHARED_AI ? 'sk-… (optional — your own key)' : 'sk-...'}
-              style={{ paddingRight: 40 }}
-              aria-label="OpenAI API key"
-            />
-            <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }} aria-label={showKey ? 'Hide key' : 'Show key'}>
-              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+
+          {keyReady ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 13.5 }}>
+              <span style={{ color: 'var(--yes)' }}>✓ Using your saved OpenAI key.</span>
+              <button className="ss-link" onClick={() => { setApiKey(''); setShowKeyField(true); }}>
+                Use a different key
+              </button>
+            </div>
+          ) : SHARED_AI && !showKeyField ? (
+            <button className="ss-link" style={{ alignSelf: 'flex-start', fontSize: 13.5 }} onClick={() => setShowKeyField(true)}>
+              Use your own OpenAI key (optional) →
             </button>
-          </div>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              <input
+                className="ss-input"
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={e => setApiKey(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && canGenerate && generate()}
+                placeholder={SHARED_AI ? 'sk-… (optional — your own key)' : 'sk-...'}
+                style={{ paddingRight: 40 }}
+                aria-label="OpenAI API key"
+                autoFocus={showKeyField}
+              />
+              <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }} aria-label={showKey ? 'Hide key' : 'Show key'}>
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
           {error && <p style={{ fontSize: 13, color: 'var(--no)' }}>{error}</p>}
           <button className="ss-cta ss-cta-primary" style={{ width: '100%' }} onClick={generate} disabled={!canGenerate || loading}>
             {loading ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Generating your portrait…</>) : 'Generate AI Portrait'}

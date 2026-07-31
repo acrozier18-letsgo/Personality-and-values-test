@@ -55,6 +55,10 @@ interface StoreState {
   email: string;
   versions: SavedVersion[];
 
+  // OpenAI key, shared reactively across every AI feature. Kept out of the
+  // persisted blob (see partialize) — it lives in its own localStorage key.
+  apiKey: string;
+
   answer: (id: string, val: Answer) => void;
   goTo: (index: number) => void;
   reset: () => void;
@@ -69,6 +73,7 @@ interface StoreState {
   setStory: (result: StoryResult | null) => void;
 
   setEmail: (email: string) => void;
+  setApiKey: (key: string) => void;
   /** Snapshot the current answers as a new saved version; returns its id. */
   saveVersion: (label?: string) => string;
   /** Load a saved version's answers into the active session. */
@@ -90,6 +95,7 @@ export const useStore = create<StoreState>()(
       story: null,
       email: '',
       versions: [],
+      apiKey: getStoredApiKey(),
 
       answer: (id, val) =>
         set((state) => ({
@@ -137,6 +143,14 @@ export const useStore = create<StoreState>()(
       setStory: (result) => set({ story: result }),
 
       setEmail: (email) => set({ email: email.trim() }),
+
+      // Persist the key to its own localStorage entry AND expose it reactively
+      // so every AI feature (portrait, story, chat, examples) shares one key.
+      setApiKey: (key) => {
+        const trimmed = key.trim();
+        saveApiKey(trimmed);
+        set({ apiKey: trimmed });
+      },
 
       saveVersion: (label) => {
         const id = newId();
@@ -186,6 +200,13 @@ export const useStore = create<StoreState>()(
     {
       name: 'selfscape-v1',
       version: 2,
+      // Keep the API key out of the persisted blob (and thus out of any export);
+      // it is stored separately via saveApiKey and re-seeded on load.
+      partialize: (state) => {
+        const persisted = { ...state };
+        delete (persisted as { apiKey?: string }).apiKey;
+        return persisted;
+      },
       // v2: answers moved from 'yes'|'no'|'skip' to a 5-point agree/disagree scale.
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as StoreState;

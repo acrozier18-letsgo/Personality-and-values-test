@@ -3,7 +3,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 import type { Answer } from '../engine/scoring';
 import type { Question } from '../data/questions';
 import { generateExample, SHARED_AI } from '../services/openai';
-import { getStoredApiKey, saveApiKey } from '../store/useStore';
+import { useStore } from '../store/useStore';
 
 // Presented top-to-bottom, most-agree first. `key` is the 1–5 keyboard shortcut.
 const OPTIONS: { value: Answer; label: string; key: string; color: string }[] = [
@@ -27,7 +27,8 @@ interface Props {
 }
 
 export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasPrev, hasNext, groupColor, groupLabel }: Props) {
-  const [apiKey, setApiKey] = useState(() => getStoredApiKey());
+  const apiKey = useStore(s => s.apiKey);
+  const setApiKey = useStore(s => s.setApiKey);
   const [showKey, setShowKey] = useState(false);
   const [showExample, setShowExample] = useState(false);
   const [example, setExample] = useState<string | null>(null);
@@ -54,7 +55,6 @@ export function QuestionCard({ question, current, onAnswer, onPrev, onNext, hasP
 
   async function fetchExample() {
     if (!apiKey.trim() && !SHARED_AI) return;
-    if (apiKey.trim()) saveApiKey(apiKey.trim());
     setLoadingExample(true);
     setExampleError(null);
     try {
