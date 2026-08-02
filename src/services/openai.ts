@@ -27,8 +27,9 @@ async function getClient(apiKey: string) {
 export interface LLMPersonaResult {
   title: string;        // e.g. "The Philosopher Goat"
   subtitle: string;     // 1–2 sentence flavour text
-  imageUrl: string;     // DALL-E 3 URL (temporary, expires)
+  imageUrl: string;     // generated image (data URL); '' when the image step failed
   imagePrompt: string;  // for transparency
+  imageError?: string;  // set when the illustration couldn't be generated (name/subtitle still valid)
 }
 
 // ── Persona chat ("Talk to Yourself" / "Talk to Anti-You") ────────────────────
@@ -113,89 +114,71 @@ export async function generateLLMPersona(
   const client = await getClient(apiKey);
   const topTraits = buildTopTraits(scores);
 
-  // ── Step 1: Generate title + subtitle ────────────────────────────────────
-  const titlePrompt = `You are a creative naming consultant for a personality app called Selfscape.
+  // ── Step 1: title + subtitle + image prompt in a single chat call ─────────
+  // (One call instead of two keeps request volume — and rate-limit pressure — down.)
+  const prompt = `You are a creative director for a personality app called Selfscape.
 
 A user's psychological profile shows:
 - Archetype: ${archetype.name} — "${archetype.tagline}"
 - Identity: ${identitySentence}
 - Top traits: ${topTraits}
-- Zodiac sign: ${zodiac.name} (${zodiac.element} sign; traits: ${zodiac.traits.join(', ')})
+- Zodiac sign: ${zodiac.name} (${zodiac.element} sign; visual motif: ${zodiac.imageDescription}; traits: ${zodiac.traits.join(', ')})
 
-Create a poetic, memorable persona title for this person that:
-1. Cleverly weaves in their zodiac animal or symbol (e.g. "The Philosopher Goat" for a philosophical Capricorn)
-2. Captures their top 1–2 psychological traits
-3. Is 3–5 words, starting with "The"
-4. Feels like a mythic title or character class, not a job title
-
-Then write 1–2 sentences of vivid flavour text that expands on the title — evocative and slightly lyrical, referencing both their zodiac and their strongest traits. Do NOT just list traits; paint a picture.
+Produce three things:
+1. "title": a poetic, memorable persona title — 3–5 words starting with "The", cleverly weaving in their zodiac animal/symbol (e.g. "The Philosopher Goat") and their top 1–2 traits. A mythic title, not a job title.
+2. "subtitle": 1–2 sentences of vivid, lyrical flavour text expanding the title — reference their zodiac and strongest traits; paint a picture, don't list traits.
+3. "imagePrompt": a vivid, specific 150–200 word image prompt for a SINGLE portrait illustration of this persona. Make the zodiac motif (${zodiac.imageDescription}) the central character/dominant symbol; reflect the traits through lighting, setting and atmosphere; specify an art style (e.g. "luminous oil painting", "Art Nouveau poster"); rich dramatic colours fitting the ${zodiac.element} element; cinematic hero composition. Absolutely NO text, letters, words or numbers. End the prompt with: "No text, no letters, no words."
 
 Respond in valid JSON exactly like this (no markdown fences):
-{"title": "The ...", "subtitle": "..."}`;
+{"title": "The ...", "subtitle": "...", "imagePrompt": "..."}`;
 
-  const titleResp = await client.chat.completions.create({
+  const resp = await client.chat.completions.create({
     model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: titlePrompt }],
+    messages: [{ role: 'user', content: prompt }],
     response_format: { type: 'json_object' },
     temperature: 0.9,
-    max_tokens: 300,
+    max_tokens: 700,
   });
 
-  const parsed = JSON.parse(titleResp.choices[0].message.content ?? '{}') as {
+  const parsed = JSON.parse(resp.choices[0].message.content ?? '{}') as {
     title?: string;
     subtitle?: string;
+    imagePrompt?: string;
   };
   const title    = parsed.title    ?? `The ${zodiac.name} ${archetype.name.replace('The ', '')}`;
   const subtitle = parsed.subtitle ?? archetype.description;
-
-  // ── Step 2: Build DALL-E prompt ───────────────────────────────────────────
-  const dallePromptRequest = `You are a creative director writing a DALL-E 3 image prompt.
-
-The persona is: "${title}"
-Zodiac: ${zodiac.name} — ${zodiac.imageDescription}
-Archetype feel: ${archetype.tagline}
-Top traits: ${topTraits}
-
-Write a vivid, specific DALL-E 3 prompt (150–200 words) for a SINGLE portrait illustration of this persona.
-Requirements:
-- Incorporate the zodiac's visual motif (${zodiac.imageDescription}) as the central character or dominant symbol
-- Reflect the psychological traits through lighting, setting, and atmosphere
-- Specify an art style (e.g., "detailed watercolour illustration", "luminous oil painting", "Art Nouveau poster")
-- Rich, dramatic colours fitting the ${zodiac.element} element
-- Cinematic composition — this is a hero image, not a diagram
-- Absolutely NO text, letters, words, or numbers in the image
-- End with: "No text, no letters, no words."
-
-Respond with ONLY the image prompt text, no preamble.`;
-
-  const dallePromptResp = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: dallePromptRequest }],
-    temperature: 0.85,
-    max_tokens: 400,
-  });
-
-  const imagePrompt = dallePromptResp.choices[0].message.content?.trim()
+  const imagePrompt = parsed.imagePrompt?.trim()
     ?? `${zodiac.imageDescription}, ${archetype.tagline}, dramatic fantasy illustration, no text`;
 
-  // ── Step 3: Generate image ────────────────────────────────────────────────
-  const imageResp = await client.images.generate({
-    model: 'gpt-image-1',
-    prompt: imagePrompt,
-    size: '1024x1024',
-    quality: 'medium',
-    n: 1,
-  });
+  // ── Step 2: image (optional) ──────────────────────────────────────────────
+  // Image generation is far more rate-limited than chat (and on the shared key
+  // may be throttled by the proxy). If it fails, still return the written
+  // persona so the name, description and story features work regardless.
+  let imageUrl = '';
+  let imageError: string | undefined;
+  try {
+    const imageResp = await client.images.generate({
+      model: 'gpt-image-1',
+      prompt: imagePrompt,
+      size: '1024x1024',
+      quality: 'medium',
+      n: 1,
+    });
+    // gpt-image-1 returns base64 (b64_json); older models return a hosted url.
+    const first = (imageResp.data ?? [])[0];
+    imageUrl = first?.url
+      ? first.url
+      : first?.b64_json
+        ? `data:image/png;base64,${first.b64_json}`
+        : '';
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    imageError = /429|rate.?limit|1015/i.test(msg)
+      ? 'The illustration is temporarily unavailable — the image service is busy. Your persona name and description are ready; try “Regenerate” again in a little while for the artwork.'
+      : 'The illustration couldn’t be generated this time. Your persona name and description are ready; try “Regenerate” for the artwork.';
+  }
 
-  // gpt-image-1 returns base64 (b64_json); older models return a hosted url.
-  const first = (imageResp.data ?? [])[0];
-  const imageUrl = first?.url
-    ? first.url
-    : first?.b64_json
-      ? `data:image/png;base64,${first.b64_json}`
-      : '';
-
-  return { title, subtitle, imageUrl, imagePrompt };
+  return { title, subtitle, imageUrl, imagePrompt, imageError };
 }
 
 // ── Personalised short story ──────────────────────────────────────────────────

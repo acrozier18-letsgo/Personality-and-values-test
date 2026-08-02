@@ -69,6 +69,11 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
             <div style={{ padding: 26 }}>
               <h3 className="font-display" style={{ fontSize: 26, color: 'var(--gold-deep)', margin: '0 0 6px' }}>{stored.title}</h3>
               <p style={{ color: 'var(--ink-2)' }}>{stored.subtitle}</p>
+              {stored.imageError && (
+                <p style={{ marginTop: 14, fontSize: 12.5, lineHeight: 1.55, color: 'var(--ink-muted)', background: 'var(--tint-gold)', border: '1px solid var(--card-border)', borderRadius: 6, padding: '10px 12px' }}>
+                  {stored.imageError}
+                </p>
+              )}
             </div>
           )}
           <div style={{ padding: 16, borderTop: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
