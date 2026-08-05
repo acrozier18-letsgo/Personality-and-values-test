@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { generateLLMPersona, SHARED_AI } from '../services/openai';
 import { useStore } from '../store/useStore';
@@ -29,8 +29,21 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
   const keyReady = Boolean(apiKey.trim());
   const canGenerate = keyReady || SHARED_AI;
 
+  // Cooldown between generations — spacing requests out avoids the burst rate
+  // limiting (Cloudflare "1015") that images are prone to on the shared key.
+  const COOLDOWN_MS = 20000;
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) return;
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
+  const cooldownLeft = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const onCooldown = cooldownLeft > 0;
+
   async function generate() {
-    if (!canGenerate) return;
+    if (!canGenerate || loading || Date.now() < cooldownUntil) return;
     setLoading(true);
     setError(null);
     try {
@@ -44,6 +57,7 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
               : `Error: ${msg}`);
     } finally {
       setLoading(false);
+      setCooldownUntil(Date.now() + COOLDOWN_MS); // brief pause before the next attempt
     }
   }
 
@@ -80,8 +94,8 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
             <button className="ss-topbtn" style={{ fontSize: 12 }} onClick={() => setShowPrompt(p => !p)}>
               {showPrompt ? 'Hide' : 'Show'} image prompt
             </button>
-            <button className="ss-cta ss-cta-secondary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => { onResult(null); generate(); }} disabled={loading}>
-              <RefreshCw className="w-3 h-3" aria-hidden /> Regenerate
+            <button className="ss-cta ss-cta-secondary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => { onResult(null); generate(); }} disabled={loading || onCooldown}>
+              <RefreshCw className="w-3 h-3" aria-hidden /> {onCooldown ? `Wait ${cooldownLeft}s` : 'Regenerate'}
             </button>
           </div>
           {showPrompt && stored.imagePrompt && (
@@ -128,8 +142,10 @@ export function LLMPersona({ scores, zodiac, archetype, identitySentence, stored
             </div>
           )}
           {error && <p style={{ fontSize: 13, color: 'var(--no)' }}>{error}</p>}
-          <button className="ss-cta ss-cta-primary" style={{ width: '100%' }} onClick={generate} disabled={!canGenerate || loading}>
-            {loading ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Generating your portrait…</>) : 'Generate AI Portrait'}
+          <button className="ss-cta ss-cta-primary" style={{ width: '100%' }} onClick={generate} disabled={!canGenerate || loading || onCooldown}>
+            {loading ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Generating your portrait…</>)
+              : onCooldown ? `Please wait ${cooldownLeft}s…`
+              : 'Generate AI Portrait'}
           </button>
           {loading && (
             <p style={{ fontSize: 12, textAlign: 'center', color: 'var(--ink-faint)' }}>
