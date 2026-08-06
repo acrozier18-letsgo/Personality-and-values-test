@@ -90,6 +90,7 @@ export default function Results() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             {zodiac && <ZodiacBadge sign={zodiac} variant="chip" />}
             <button className="ss-cta ss-cta-primary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={handleShare}>Share card</button>
+            <button className="ss-cta ss-cta-secondary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => navigate('/together')}>Together →</button>
             <button className="ss-cta ss-cta-secondary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => navigate('/refine')}>Refine →</button>
           </div>
         </div>
@@ -195,6 +196,18 @@ export default function Results() {
           />
 
           <DataPortability persona={persona} result={result} />
+
+          {/* Together — the natural next step once you have a portrait of your own */}
+          <section aria-label="Selfscape Together" className="ss-card" style={{ padding: '30px 28px', textAlign: 'center', background: 'var(--tint-gold-2)' }}>
+            <div className="kicker">With someone else</div>
+            <h2 style={{ fontSize: 30, margin: '6px 0 10px' }}>Now Read It Against Your Partner’s</h2>
+            <p style={{ fontSize: 14.8, lineHeight: 1.65, color: 'var(--ink-2)', maxWidth: 580, margin: '0 auto 20px' }}>
+              Selfscape Together puts two portraits side by side — where you align, exactly what you see
+              differently, and a counsellor’s read on how to talk to each other, handle conflict, and share
+              the load of kids, money and family.
+            </p>
+            <button className="ss-cta ss-cta-primary" onClick={() => navigate('/together')}>Open Together →</button>
+          </section>
 
           <PersonaChats persona={persona} result={result} answers={answers} />
         </div>

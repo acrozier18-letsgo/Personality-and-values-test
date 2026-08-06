@@ -43,7 +43,7 @@ export interface OptionalQuestion {
 }
 
 export const OPTIONAL_QUESTIONS: OptionalQuestion[] = [
-  // ── Parenting (50) ─────────────────────────────────────────────────────────
+  // ── Parenting (60) ─────────────────────────────────────────────────────────
   { id: 'par001', category: 'parenting', text: 'I want to have children (or already do and am glad of it).' },
   { id: 'par002', category: 'parenting', text: 'Raising children is one of the most meaningful things a person can do.' },
   { id: 'par003', category: 'parenting', text: 'Clear rules and consistent boundaries matter more than being my child’s friend.' },
@@ -94,8 +94,18 @@ export const OPTIONAL_QUESTIONS: OptionalQuestion[] = [
   { id: 'par048', category: 'parenting', text: 'I want parenting to be an equal partnership, split evenly with a co-parent.' },
   { id: 'par049', category: 'parenting', text: 'I would be open to adopting or fostering children.' },
   { id: 'par050', category: 'parenting', text: 'How my partner and I would parent together is something I’d want settled before committing.' },
+  { id: 'par051', category: 'parenting', text: 'I would want us to agree on how many children we’d have before committing.' },
+  { id: 'par052', category: 'parenting', text: 'I’d want to raise children close to extended family.' },
+  { id: 'par053', category: 'parenting', text: 'I would seek professional help early if a child were struggling emotionally.' },
+  { id: 'par054', category: 'parenting', text: 'I think children should have a real say in family holidays and plans.' },
+  { id: 'par055', category: 'parenting', text: 'I’d want our children to learn about money by managing their own.' },
+  { id: 'par056', category: 'parenting', text: 'I would limit how much of my children’s lives I share publicly or online.' },
+  { id: 'par057', category: 'parenting', text: 'A child’s temperament should change how they are parented.' },
+  { id: 'par058', category: 'parenting', text: 'I want my children to grow up seeing both parents work.' },
+  { id: 'par059', category: 'parenting', text: 'I’d want us to plan for who raises the children if something happened to us.' },
+  { id: 'par060', category: 'parenting', text: 'I would talk to my children about our own relationship struggles when they’re old enough.' },
 
-  // ── Marriage & Partner (50) ────────────────────────────────────────────────
+  // ── Marriage & Partner (62) ────────────────────────────────────────────────
   { id: 'mar001', category: 'partner', text: 'I ultimately want a committed, long-term partnership or marriage.' },
   { id: 'mar002', category: 'partner', text: 'Shared values matter more to me than shared interests in a partner.' },
   { id: 'mar003', category: 'partner', text: 'Physical attraction is essential and non-negotiable for me.' },
@@ -146,6 +156,18 @@ export const OPTIONAL_QUESTIONS: OptionalQuestion[] = [
   { id: 'mar048', category: 'partner', text: 'I want a partner who is comfortable with my need for personal growth and change.' },
   { id: 'mar049', category: 'partner', text: 'How we handle conflict matters more to me than how often we agree.' },
   { id: 'mar050', category: 'partner', text: 'I believe a lasting partnership is built more on commitment than on feelings.' },
+  { id: 'mar051', category: 'partner', text: 'I want a partner who tells me when I’m being unreasonable.' },
+  { id: 'mar052', category: 'partner', text: 'I’d want us to keep separate friendships and interests rather than merge entirely.' },
+  { id: 'mar053', category: 'partner', text: 'I expect a long relationship to go through long stretches of low connection.' },
+  { id: 'mar054', category: 'partner', text: 'I would end a relationship over a single betrayal of trust.' },
+  { id: 'mar055', category: 'partner', text: 'I want us to have explicit agreements rather than unspoken assumptions.' },
+  { id: 'mar056', category: 'partner', text: 'I’d want a regular check-in about how the relationship itself is going.' },
+  { id: 'mar057', category: 'partner', text: 'I want a partner who initiates repair after a fight, not just accepts it.' },
+  { id: 'mar058', category: 'partner', text: 'I believe love is a decision more than a feeling.' },
+  { id: 'mar059', category: 'partner', text: 'I’d want us to agree explicitly on what counts as cheating, including emotionally.' },
+  { id: 'mar060', category: 'partner', text: 'I want a partner who is honest with me about finding other people attractive.' },
+  { id: 'mar061', category: 'partner', text: 'I would stay in an unhappy relationship for the children’s sake.' },
+  { id: 'mar062', category: 'partner', text: 'I want a partner who will tell me hard truths about myself.' },
 
   // ── Hobbies (25) ───────────────────────────────────────────────────────────
   { id: 'hob001', category: 'hobbies', text: 'I actively make time for hobbies, not just work and obligations.' },
@@ -228,7 +250,7 @@ export const OPTIONAL_QUESTIONS: OptionalQuestion[] = [
   { id: 'edu024', category: 'education', text: 'I like debating ideas and being challenged on what I think I know.' },
   { id: 'edu025', category: 'education', text: 'Continuing to grow intellectually is essential to a good life.' },
 
-  // ── Intimacy & Sex Life (25) — tasteful, non-explicit ──────────────────────
+  // ── Intimacy & Sex Life (33) — tasteful, non-explicit ──────────────────────
   { id: 'sex001', category: 'intimacy', text: 'Physical intimacy is a very important part of a relationship for me.' },
   { id: 'sex002', category: 'intimacy', text: 'I’m comfortable talking openly with a partner about my needs and desires.' },
   { id: 'sex003', category: 'intimacy', text: 'Emotional closeness matters more to me than physical intimacy.' },
@@ -254,6 +276,14 @@ export const OPTIONAL_QUESTIONS: OptionalQuestion[] = [
   { id: 'sex023', category: 'intimacy', text: 'I’d want to align with a partner on intimacy before a serious commitment.' },
   { id: 'sex024', category: 'intimacy', text: 'I’m open to a partner’s preferences even when they differ from my own.' },
   { id: 'sex025', category: 'intimacy', text: 'Mutual respect matters to me more than any particular preference.' },
+  { id: 'sex026', category: 'intimacy', text: 'I’d want us to talk about our intimate life even when nothing is wrong.' },
+  { id: 'sex027', category: 'intimacy', text: 'Stress affects my desire more than anything else does.' },
+  { id: 'sex028', category: 'intimacy', text: 'I need emotional connection restored before physical intimacy after a fight.' },
+  { id: 'sex029', category: 'intimacy', text: 'I’d want us to make deliberate time for intimacy if life got busy.' },
+  { id: 'sex030', category: 'intimacy', text: 'I find it hard to say no without feeling guilty.' },
+  { id: 'sex031', category: 'intimacy', text: 'I would tell my partner directly if I were unhappy with our intimate life.' },
+  { id: 'sex032', category: 'intimacy', text: 'A mismatch in desire is something I’d want to solve together, not quietly endure.' },
+  { id: 'sex033', category: 'intimacy', text: 'I want us to keep flirting with each other after years together.' },
 
   // ── Travel (25) ────────────────────────────────────────────────────────────
   { id: 'trv001', category: 'travel', text: 'Travel is one of my greatest sources of joy and meaning.' },

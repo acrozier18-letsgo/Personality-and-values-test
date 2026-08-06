@@ -12,6 +12,7 @@ import type { ScoringResult } from '../engine/scoring';
 import type { Persona } from '../engine/synthesis';
 import { QUESTIONS } from '../data/questions';
 import { OPTIONAL_QUESTIONS, OPTIONAL_CATEGORIES } from '../data/optionalQuestions';
+import { RELATIONSHIP_QUESTIONS, RELATIONSHIP_CATEGORIES } from '../data/relationshipQuestions';
 import { DIMENSIONS, DIMENSION_MAP } from '../data/dimensions';
 import type { DimensionKey } from '../data/dimensions';
 import { getZodiacFromDate } from '../data/zodiac';
@@ -43,6 +44,7 @@ export interface ImportPayload {
 const VALID_QUESTION_IDS = new Set([
   ...QUESTIONS.map((q) => q.id),
   ...OPTIONAL_QUESTIONS.map((q) => q.id),
+  ...RELATIONSHIP_QUESTIONS.map((q) => q.id),
 ]);
 
 export function buildAnswersFile(data: {
@@ -327,6 +329,30 @@ export function buildMemoryMarkdown(
       lines.push('_Self-reported answers to optional question packs — useful context on values and preferences._');
       lines.push('');
       lines.push(...optionalLines);
+    }
+
+    // Relationship packs — how they say they actually behave with a partner.
+    const relLines: string[] = [];
+    for (const cat of RELATIONSHIP_CATEGORIES) {
+      const qs = RELATIONSHIP_QUESTIONS.filter((q) => q.category === cat.key);
+      const agrees = qs.filter((q) => { const a = answers[q.id]; return a && ANSWER_VALUES[a] > 0; });
+      const disagrees = qs.filter((q) => { const a = answers[q.id]; return a && ANSWER_VALUES[a] < 0; });
+      if (agrees.length === 0 && disagrees.length === 0) continue;
+      relLines.push(`### ${cat.label}`);
+      if (agrees.length) relLines.push('Says of themselves:');
+      for (const q of agrees) relLines.push(`- ${q.text}`);
+      if (disagrees.length) relLines.push('Says this is not them:');
+      for (const q of disagrees) relLines.push(`- ${q.text}`);
+      relLines.push('');
+    }
+    if (relLines.length) {
+      lines.push('## How they operate in a relationship');
+      lines.push(
+        '_Self-reported patterns around conflict, requests, stress, money, parenting and family. ' +
+          'Useful for tone and timing; not a licence to psychoanalyse them._',
+      );
+      lines.push('');
+      lines.push(...relLines);
     }
   }
 
