@@ -15,7 +15,7 @@ function answerColor(a: Answer | undefined): string {
 
 export default function Quiz() {
   const navigate = useNavigate();
-  const { answers, cursor, answer, goTo, email, selectedCategories } = useStore();
+  const { answers, cursor, answer, goTo, email, selectedCategories, deepDive } = useStore();
   const [showReview, setShowReview] = useState(false);
 
   // Require an email to take the assessment; send them back to sign in otherwise.
@@ -23,7 +23,7 @@ export default function Quiz() {
     if (!isValidEmail(email)) navigate('/', { replace: true });
   }, [email, navigate]);
 
-  const active = useMemo(() => activeQuestions(selectedCategories), [selectedCategories]);
+  const active = useMemo(() => activeQuestions(selectedCategories, deepDive), [selectedCategories, deepDive]);
   const total = active.length;
   const idx = Math.min(cursor, Math.max(0, total - 1));
   const q = active[idx];

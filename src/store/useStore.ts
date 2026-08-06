@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware';
 import type { Answer } from '../engine/scoring';
 import { isAnswered, countAnswered } from '../engine/scoring';
 import { DEFAULT_SELECTED_CATEGORIES } from '../data/categories';
-import type { LLMPersonaResult, StoryResult } from '../services/openai';
+import type { LLMPersonaResult, StoryResult, CoupleReport } from '../services/openai';
+import type { PartnerProfile } from '../partner/types';
 
 /** A saved snapshot of a completed (or in-progress) answer set, kept locally. */
 export interface SavedVersion {
@@ -62,6 +63,16 @@ interface StoreState {
 
   // Which question categories the user has chosen to answer (core + optional).
   selectedCategories: string[];
+  /** Adds the deep-dive tier of any selected relationship pack to the quiz. */
+  deepDive: boolean;
+
+  // ── Together (couples) ────────────────────────────────────────────────────
+  /** What this person wants to be called in the couples report. */
+  selfName: string;
+  /** The partner's imported profile — everything the Together page reasons about. */
+  partner: PartnerProfile | null;
+  /** Cached couples report, so it survives a refresh and isn't regenerated for free. */
+  coupleReport: CoupleReport | null;
 
   answer: (id: string, val: Answer) => void;
   goTo: (index: number) => void;
@@ -80,6 +91,13 @@ interface StoreState {
   setApiKey: (key: string) => void;
   toggleCategory: (key: string) => void;
   setCategories: (keys: string[]) => void;
+  setDeepDive: (on: boolean) => void;
+
+  setSelfName: (name: string) => void;
+  /** Link a partner's shared profile. Clears any report built from a previous one. */
+  setPartner: (profile: PartnerProfile | null) => void;
+  renamePartner: (name: string) => void;
+  setCoupleReport: (report: CoupleReport | null) => void;
   /** Snapshot the current answers as a new saved version; returns its id. */
   saveVersion: (label?: string) => string;
   /** Load a saved version's answers into the active session. */
@@ -103,6 +121,10 @@ export const useStore = create<StoreState>()(
       versions: [],
       apiKey: getStoredApiKey(),
       selectedCategories: [...DEFAULT_SELECTED_CATEGORIES],
+      deepDive: false,
+      selfName: '',
+      partner: null,
+      coupleReport: null,
 
       answer: (id, val) =>
         set((state) => ({
@@ -122,6 +144,9 @@ export const useStore = create<StoreState>()(
           refineAnswers: {},
           llmPersona: null,
           story: null,
+          // The report was built from answers that no longer exist. The partner
+          // link itself survives — it isn't this person's data to erase.
+          coupleReport: null,
           // birthdate intentionally kept — user doesn't need to re-enter it
         }),
 
@@ -137,6 +162,7 @@ export const useStore = create<StoreState>()(
           lastSavedAt: Date.now(),
           llmPersona: null,
           story: null,
+          coupleReport: null,
         })),
 
       setRefineAnswer: (id, val) =>
@@ -167,6 +193,22 @@ export const useStore = create<StoreState>()(
         })),
 
       setCategories: (keys) => set({ selectedCategories: keys }),
+
+      setDeepDive: (on) => set({ deepDive: on }),
+
+      setSelfName: (name) => set({ selfName: name.trim() }),
+
+      // A new partner invalidates any report — it was written about someone else.
+      setPartner: (profile) => set({ partner: profile, coupleReport: null }),
+
+      renamePartner: (name) =>
+        set((state) =>
+          state.partner
+            ? { partner: { ...state.partner, displayName: name.trim() || 'Your partner' } }
+            : {},
+        ),
+
+      setCoupleReport: (report) => set({ coupleReport: report }),
 
       saveVersion: (label) => {
         const id = newId();
@@ -200,6 +242,7 @@ export const useStore = create<StoreState>()(
             lastSavedAt: Date.now(),
             llmPersona: null,
             story: null,
+            coupleReport: null,
           };
         }),
 
@@ -215,7 +258,7 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'selfscape-v1',
-      version: 2,
+      version: 3,
       // Keep the API key out of the persisted blob (and thus out of any export);
       // it is stored separately via saveApiKey and re-seeded on load.
       partialize: (state) => {
@@ -239,6 +282,8 @@ export const useStore = create<StoreState>()(
           }
           state.answers = migrated;
         }
+        // v3 added the Together slice. Older blobs simply lack these keys; the
+        // defaults in the initialiser cover them, so nothing to migrate.
         return state;
       },
     },

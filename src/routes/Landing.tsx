@@ -47,7 +47,8 @@ const EXPECTATIONS = [
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { answers, reset, importData, birthdate, setBirthdate, email, setEmail, selectedCategories } = useStore();
+  const { answers, reset, importData, birthdate, setBirthdate, email, setEmail, selectedCategories, partner } = useStore();
+  const partnerLinked = Boolean(partner);
 
   const hasProgress = countAnswered(answers) > 0;
   const coreAnswered = coreAnsweredCount(answers);
@@ -208,6 +209,20 @@ export default function Landing() {
 
       {/* Choose which kinds of questions to answer */}
       <CategorySelector />
+
+      {/* Together — the couples companion */}
+      <div className="ss-card" style={{ maxWidth: 640, margin: '20px auto 0', padding: '28px 30px' }}>
+        <div className="kicker">With someone else</div>
+        <h2 className="font-display" style={{ fontSize: 26, margin: '8px 0 10px' }}>Selfscape Together</h2>
+        <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.62, margin: '0 0 16px' }}>
+          When you and a partner have both mapped yourselves, Together reads the two side by side: where you
+          align, the exact things you see differently, and practical guidance on how to talk to each other,
+          ask for things, handle bad news, the kids, money and family.
+        </p>
+        <button className="ss-cta ss-cta-primary" onClick={() => navigate('/together')}>
+          {partnerLinked ? 'Open Together →' : 'Explore Together →'}
+        </button>
+      </div>
 
       {/* Note */}
       <div style={{ marginTop: 20 }}>
