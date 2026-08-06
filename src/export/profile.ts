@@ -11,6 +11,7 @@ import { ANSWER_VALUES } from '../engine/scoring';
 import type { ScoringResult } from '../engine/scoring';
 import type { Persona } from '../engine/synthesis';
 import { QUESTIONS } from '../data/questions';
+import { OPTIONAL_QUESTIONS, OPTIONAL_CATEGORIES } from '../data/optionalQuestions';
 import { DIMENSIONS, DIMENSION_MAP } from '../data/dimensions';
 import type { DimensionKey } from '../data/dimensions';
 import { getZodiacFromDate } from '../data/zodiac';
@@ -39,7 +40,10 @@ export interface ImportPayload {
   birthdate: string;
 }
 
-const VALID_QUESTION_IDS = new Set(QUESTIONS.map((q) => q.id));
+const VALID_QUESTION_IDS = new Set([
+  ...QUESTIONS.map((q) => q.id),
+  ...OPTIONAL_QUESTIONS.map((q) => q.id),
+]);
 
 export function buildAnswersFile(data: {
   answers: Record<string, Answer>;
@@ -202,6 +206,7 @@ export function buildMemoryMarkdown(
   persona: Persona,
   result: ScoringResult,
   birthdate: string,
+  answers?: Record<string, Answer>,
 ): string {
   const L = (k: DimensionKey) => DIMENSION_MAP[k].label;
   const S = (k: DimensionKey) => result.scores[k]?.score ?? 50;
@@ -300,6 +305,29 @@ export function buildMemoryMarkdown(
     lines.push('## Career resonance');
     lines.push(careers.join(', ') + '.');
     lines.push('');
+  }
+
+  // Optional packs — parenting, partner, hobbies, etc. (captured, not scored)
+  if (answers) {
+    const optionalLines: string[] = [];
+    for (const cat of OPTIONAL_CATEGORIES) {
+      const qs = OPTIONAL_QUESTIONS.filter((q) => q.category === cat.key);
+      const agrees = qs.filter((q) => { const a = answers[q.id]; return a && ANSWER_VALUES[a] > 0; });
+      const disagrees = qs.filter((q) => { const a = answers[q.id]; return a && ANSWER_VALUES[a] < 0; });
+      if (agrees.length === 0 && disagrees.length === 0) continue;
+      optionalLines.push(`### ${cat.label}`);
+      if (agrees.length) optionalLines.push('Agrees with:');
+      for (const q of agrees) optionalLines.push(`- ${q.text}`);
+      if (disagrees.length) optionalLines.push('Leans against:');
+      for (const q of disagrees) optionalLines.push(`- ${q.text}`);
+      optionalLines.push('');
+    }
+    if (optionalLines.length) {
+      lines.push('## Preferences & lifestyle');
+      lines.push('_Self-reported answers to optional question packs — useful context on values and preferences._');
+      lines.push('');
+      lines.push(...optionalLines);
+    }
   }
 
   // How to work with me — light guidance derived from the strongest traits

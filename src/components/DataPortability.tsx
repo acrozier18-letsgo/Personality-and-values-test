@@ -33,13 +33,13 @@ export function DataPortability({ persona, result }: Props) {
   }
 
   function handleDownloadMemory() {
-    const md = buildMemoryMarkdown(persona, result, birthdate);
+    const md = buildMemoryMarkdown(persona, result, birthdate, answers);
     const stamp = new Date().toISOString().slice(0, 10);
     downloadTextFile(`selfscape-profile-${stamp}.md`, md, 'text/markdown');
   }
 
   async function handleCopyMemory() {
-    const md = buildMemoryMarkdown(persona, result, birthdate);
+    const md = buildMemoryMarkdown(persona, result, birthdate, answers);
     const ok = await copyToClipboard(md);
     if (ok) {
       setCopied(true);

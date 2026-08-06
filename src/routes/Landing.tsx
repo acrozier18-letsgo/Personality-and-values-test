@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useStore, isValidEmail } from '../store/useStore';
 import { readAnswersFile } from '../export/profile';
 import { VersionHistory } from '../components/VersionHistory';
+import { CategorySelector } from '../components/CategorySelector';
+import { coreAnsweredCount, coreSelectedTotal } from '../data/categories';
 import { Disclaimer } from '../components/Disclaimer';
 import { ZodiacBadge } from '../components/ZodiacBadge';
 import { ChineseZodiacBadge } from '../components/ChineseZodiacBadge';
 import { Oculus } from '../components/Oculus';
-import { QUESTIONS } from '../data/questions';
 import { countAnswered, personaUnlockThreshold } from '../engine/scoring';
 import { getZodiacFromDate } from '../data/zodiac';
 import { getChineseZodiac } from '../data/chineseZodiac';
@@ -46,13 +47,14 @@ const EXPECTATIONS = [
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { answers, reset, importData, birthdate, setBirthdate, email, setEmail } = useStore();
+  const { answers, reset, importData, birthdate, setBirthdate, email, setEmail, selectedCategories } = useStore();
 
-  const answered = countAnswered(answers);
-  const hasProgress = answered > 0;
-  const pct = Math.round((answered / QUESTIONS.length) * 100);
-  const unlockThreshold = personaUnlockThreshold(QUESTIONS.length);
-  const personaUnlocked = answered >= unlockThreshold;
+  const hasProgress = countAnswered(answers) > 0;
+  const coreAnswered = coreAnsweredCount(answers);
+  const coreTotal = coreSelectedTotal(selectedCategories);
+  const pct = coreTotal ? Math.round((coreAnswered / coreTotal) * 100) : 0;
+  const unlockThreshold = personaUnlockThreshold(coreTotal);
+  const personaUnlocked = coreAnswered >= unlockThreshold;
 
   const [emailInput, setEmailInput] = useState(email);
   const canBegin = isValidEmail(emailInput);
@@ -204,6 +206,9 @@ export default function Landing() {
         ) : null}
       </div>
 
+      {/* Choose which kinds of questions to answer */}
+      <CategorySelector />
+
       {/* Note */}
       <div style={{ marginTop: 20 }}>
         <Disclaimer />
@@ -242,7 +247,7 @@ export default function Landing() {
         </p>
       ) : hasProgress && !personaUnlocked ? (
         <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-muted)', marginTop: 12 }}>
-          Your persona unlocks at 75% — {unlockThreshold - answered} more answer{unlockThreshold - answered === 1 ? '' : 's'} to go.
+          Your persona unlocks at 75% — {Math.max(0, unlockThreshold - coreAnswered)} more answer{unlockThreshold - coreAnswered === 1 ? '' : 's'} to go.
         </p>
       ) : null}
 

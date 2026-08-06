@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import type { Answer } from '../engine/scoring';
-import type { Question } from '../data/questions';
 import { generateExample, SHARED_AI } from '../services/openai';
 import { useStore } from '../store/useStore';
 
@@ -15,7 +14,7 @@ const OPTIONS: { value: Answer; label: string; key: string; color: string }[] = 
 ];
 
 interface Props {
-  question: Question;
+  question: { id: string; text: string };
   current: Answer | undefined;
   onAnswer: (val: Answer) => void;
   onPrev: () => void;

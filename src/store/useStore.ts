@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Answer } from '../engine/scoring';
 import { isAnswered, countAnswered } from '../engine/scoring';
+import { DEFAULT_SELECTED_CATEGORIES } from '../data/categories';
 import type { LLMPersonaResult, StoryResult } from '../services/openai';
 
 /** A saved snapshot of a completed (or in-progress) answer set, kept locally. */
@@ -59,6 +60,9 @@ interface StoreState {
   // persisted blob (see partialize) — it lives in its own localStorage key.
   apiKey: string;
 
+  // Which question categories the user has chosen to answer (core + optional).
+  selectedCategories: string[];
+
   answer: (id: string, val: Answer) => void;
   goTo: (index: number) => void;
   reset: () => void;
@@ -74,6 +78,8 @@ interface StoreState {
 
   setEmail: (email: string) => void;
   setApiKey: (key: string) => void;
+  toggleCategory: (key: string) => void;
+  setCategories: (keys: string[]) => void;
   /** Snapshot the current answers as a new saved version; returns its id. */
   saveVersion: (label?: string) => string;
   /** Load a saved version's answers into the active session. */
@@ -96,6 +102,7 @@ export const useStore = create<StoreState>()(
       email: '',
       versions: [],
       apiKey: getStoredApiKey(),
+      selectedCategories: [...DEFAULT_SELECTED_CATEGORIES],
 
       answer: (id, val) =>
         set((state) => ({
@@ -151,6 +158,15 @@ export const useStore = create<StoreState>()(
         saveApiKey(trimmed);
         set({ apiKey: trimmed });
       },
+
+      toggleCategory: (key) =>
+        set((state) => ({
+          selectedCategories: state.selectedCategories.includes(key)
+            ? state.selectedCategories.filter((k) => k !== key)
+            : [...state.selectedCategories, key],
+        })),
+
+      setCategories: (keys) => set({ selectedCategories: keys }),
 
       saveVersion: (label) => {
         const id = newId();

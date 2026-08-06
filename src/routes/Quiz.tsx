@@ -1,22 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore, isValidEmail } from '../store/useStore';
-import { QUESTIONS } from '../data/questions';
 import { QuestionCard } from '../components/QuestionCard';
 import { ProgressBar } from '../components/ProgressBar';
 import type { Answer } from '../engine/scoring';
-import { ANSWER_LABELS, countAnswered, personaUnlockThreshold } from '../engine/scoring';
-
-const GROUPS: Record<string, { label: string; color: string }> = {
-  A: { label: 'Personality', color: '#7c5cff' },
-  B: { label: 'Values', color: '#3b82f6' },
-  C: { label: 'Morals', color: '#10b981' },
-  D: { label: 'Politics', color: '#ef4444' },
-  E: { label: 'Philosophy', color: '#f97316' },
-  F: { label: 'Ontology', color: '#14b8a6' },
-  G: { label: 'Humor', color: '#db2777' },
-  H: { label: 'Faith', color: '#a855f7' },
-};
+import { ANSWER_LABELS, personaUnlockThreshold } from '../engine/scoring';
+import { activeQuestions, coreSelectedTotal, coreAnsweredCount, CATEGORY_MAP } from '../data/categories';
 
 function answerColor(a: Answer | undefined): string {
   if (a === 'strongly_agree' || a === 'agree') return '#2f7d54';
@@ -26,7 +15,7 @@ function answerColor(a: Answer | undefined): string {
 
 export default function Quiz() {
   const navigate = useNavigate();
-  const { answers, cursor, answer, goTo, email } = useStore();
+  const { answers, cursor, answer, goTo, email, selectedCategories } = useStore();
   const [showReview, setShowReview] = useState(false);
 
   // Require an email to take the assessment; send them back to sign in otherwise.
@@ -34,16 +23,34 @@ export default function Quiz() {
     if (!isValidEmail(email)) navigate('/', { replace: true });
   }, [email, navigate]);
 
-  const q = QUESTIONS[cursor];
-  const group = GROUPS[q.group];
+  const active = useMemo(() => activeQuestions(selectedCategories), [selectedCategories]);
+  const total = active.length;
+  const idx = Math.min(cursor, Math.max(0, total - 1));
+  const q = active[idx];
 
-  const answeredCount = countAnswered(answers);
-  const personaUnlocked = answeredCount >= personaUnlockThreshold(QUESTIONS.length);
+  const personaUnlocked = coreAnsweredCount(answers) >= personaUnlockThreshold(coreSelectedTotal(selectedCategories));
 
   const handleAnswer = (val: Answer) => {
+    if (!q) return;
     answer(q.id, val);
-    if (cursor < QUESTIONS.length - 1) goTo(cursor + 1);
+    if (idx < total - 1) goTo(idx + 1);
   };
+
+  if (total === 0 || !q) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ maxWidth: 420 }}>
+          <h1 style={{ fontSize: 36, margin: '0 0 12px' }}>No categories selected</h1>
+          <p style={{ color: 'var(--ink-2)', marginBottom: 24, lineHeight: 1.6 }}>
+            Choose at least one kind of question on the home page to begin.
+          </p>
+          <button className="ss-cta ss-cta-primary" onClick={() => navigate('/')}>← Choose categories</button>
+        </div>
+      </div>
+    );
+  }
+
+  const cat = CATEGORY_MAP[q.categoryKey];
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -52,7 +59,7 @@ export default function Quiz() {
         <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
           <button className="ss-topbtn" style={{ marginTop: 2, whiteSpace: 'nowrap' }} onClick={() => navigate('/')}>← Home</button>
           <div style={{ flex: 1, minWidth: 240 }}>
-            <ProgressBar answers={answers} cursor={cursor} />
+            <ProgressBar questions={active} answers={answers} cursor={idx} />
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
             <button className="ss-cta ss-cta-secondary" style={{ fontSize: 13, padding: '7px 14px' }} onClick={() => setShowReview(v => !v)}>Review</button>
@@ -61,7 +68,7 @@ export default function Quiz() {
               style={{ fontSize: 13, padding: '7px 14px' }}
               onClick={() => navigate('/results')}
               disabled={!personaUnlocked}
-              title={personaUnlocked ? undefined : 'Answer at least 75% of the questions to unlock your persona'}
+              title={personaUnlocked ? undefined : 'Answer at least 75% of the core questions to unlock your persona'}
             >See persona →</button>
           </div>
         </div>
@@ -74,7 +81,7 @@ export default function Quiz() {
             <button className="ss-link" onClick={() => setShowReview(false)}>← Back to quiz</button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {QUESTIONS.map((qq, i) => {
+            {active.map((qq, i) => {
               const a = answers[qq.id];
               return (
                 <button
@@ -99,17 +106,17 @@ export default function Quiz() {
             question={q}
             current={answers[q.id]}
             onAnswer={handleAnswer}
-            onPrev={() => goTo(Math.max(0, cursor - 1))}
-            onNext={() => goTo(Math.min(QUESTIONS.length - 1, cursor + 1))}
-            hasPrev={cursor > 0}
-            hasNext={cursor < QUESTIONS.length - 1}
-            groupColor={group.color}
-            groupLabel={group.label}
+            onPrev={() => goTo(Math.max(0, idx - 1))}
+            onNext={() => goTo(Math.min(total - 1, idx + 1))}
+            hasPrev={idx > 0}
+            hasNext={idx < total - 1}
+            groupColor={cat?.color ?? '#b68235'}
+            groupLabel={cat?.label ?? ''}
           />
           <p style={{ fontSize: 12, color: 'var(--ink-faint-2)', marginTop: 18, textAlign: 'center' }}>
             Your progress is saved automatically. You can leave anytime and return where you left off.
           </p>
-          {cursor === QUESTIONS.length - 1 && (
+          {idx === total - 1 && (
             <button className="ss-cta ss-cta-primary" style={{ marginTop: 22 }} onClick={() => navigate('/results')}>
               I'm done — show my persona →
             </button>

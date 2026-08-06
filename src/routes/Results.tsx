@@ -2,7 +2,8 @@ import { useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { QUESTIONS } from '../data/questions';
-import { scoreAnswers, countAnswered, personaUnlockThreshold } from '../engine/scoring';
+import { scoreAnswers, personaUnlockThreshold } from '../engine/scoring';
+import { coreAnsweredCount, coreSelectedTotal } from '../data/categories';
 import { synthesize } from '../engine/synthesis';
 import { getZodiacFromDate } from '../data/zodiac';
 import { PersonaHeader } from '../components/PersonaHeader';
@@ -28,16 +29,18 @@ const INTRO_CONTEXTS = ['At a party', 'At work', 'On a bio'] as const;
 
 export default function Results() {
   const navigate = useNavigate();
-  const { answers, birthdate, llmPersona, setLLMPersona, story, setStory } = useStore();
+  const { answers, birthdate, llmPersona, setLLMPersona, story, setStory, selectedCategories } = useStore();
   const shareCardRef = useRef<HTMLDivElement>(null);
 
   const result = useMemo(() => scoreAnswers(answers, QUESTIONS), [answers]);
   const persona = useMemo(() => synthesize(result), [result]);
   const zodiac = useMemo(() => (birthdate ? getZodiacFromDate(birthdate) : null), [birthdate]);
 
-  const answered = countAnswered(answers);
-  const threshold = personaUnlockThreshold(QUESTIONS.length);
-  const unlocked = answered >= threshold;
+  // Only core (scored) questions gate the persona; optional packs enrich the profile.
+  const coreAnswered = coreAnsweredCount(answers);
+  const coreTotal = coreSelectedTotal(selectedCategories);
+  const threshold = personaUnlockThreshold(coreTotal);
+  const unlocked = coreAnswered >= threshold;
 
   async function handleShare() {
     if (!shareCardRef.current) return;
@@ -50,23 +53,23 @@ export default function Results() {
   }
 
   if (!unlocked) {
-    const remaining = threshold - answered;
-    const pct = Math.round((answered / QUESTIONS.length) * 100);
+    const remaining = Math.max(0, threshold - coreAnswered);
+    const pct = coreTotal ? Math.round((coreAnswered / coreTotal) * 100) : 0;
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}>
         <div style={{ maxWidth: 460 }}>
           <div className="kicker" style={{ letterSpacing: '.3em' }}>Your persona</div>
           <h1 style={{ fontSize: 44, margin: '10px 0 12px' }}>Not yet drawn</h1>
           <p style={{ color: 'var(--ink-2)', marginBottom: 10, lineHeight: 1.6 }}>
-            Your portrait unlocks once you’ve answered at least 75% of the questions — enough for a
+            Your portrait unlocks once you’ve answered at least 75% of the core questions — enough for a
             reading you can trust.
           </p>
           <p style={{ color: 'var(--ink-3)', marginBottom: 22, fontSize: 15 }}>
-            You’ve answered <strong>{answered}</strong> of {QUESTIONS.length} ({pct}%).{' '}
+            You’ve answered <strong>{coreAnswered}</strong> of {coreTotal} core ({pct}%).{' '}
             <strong>{remaining}</strong> more to go.
           </p>
           <button className="ss-cta ss-cta-primary" onClick={() => navigate('/quiz')}>
-            {answered === 0 ? 'Begin the journey →' : 'Keep answering →'}
+            {coreAnswered === 0 ? 'Begin the journey →' : 'Keep answering →'}
           </button>
         </div>
       </div>
