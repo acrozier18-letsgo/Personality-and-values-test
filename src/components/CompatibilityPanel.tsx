@@ -1,9 +1,17 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useStore } from '../store/useStore';
 import { readAnswersFile } from '../export/profile';
 import { computeCompatibility } from '../engine/compatibility';
 import type { CompatibilityResult } from '../engine/compatibility';
 import { ANSWER_LABELS } from '../engine/scoring';
 import type { Answer } from '../engine/scoring';
+
+interface Slot {
+  kind: 'you' | 'version' | 'file';
+  label: string;
+  versionId?: string;
+  answers?: Record<string, Answer>; // omitted for 'you' (resolved live)
+}
 
 interface Props {
   answers: Record<string, Answer>;
@@ -18,70 +26,119 @@ function verdict(pct: number): string {
 }
 
 export function CompatibilityPanel({ answers }: Props) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [result, setResult] = useState<CompatibilityResult | null>(null);
-  const [name, setName] = useState('Their profile');
+  const versions = useStore(s => s.versions);
+  const [slotA, setSlotA] = useState<Slot | null>({ kind: 'you', label: 'You' });
+  const [slotB, setSlotB] = useState<Slot | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const fileA = useRef<HTMLInputElement>(null);
+  const fileB = useRef<HTMLInputElement>(null);
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+  const resolve = (slot: Slot | null): Record<string, Answer> | null =>
+    !slot ? null : slot.kind === 'you' ? answers : slot.answers ?? null;
+
+  const answersA = resolve(slotA);
+  const answersB = resolve(slotB);
+
+  const result: CompatibilityResult | null = useMemo(
+    () => (answersA && answersB ? computeCompatibility(answersA, answersB) : null),
+    [answersA, answersB],
+  );
+
+  function selectValue(slot: Slot | null): string {
+    if (!slot) return '';
+    if (slot.kind === 'you') return 'you';
+    if (slot.kind === 'version') return `v:${slot.versionId}`;
+    return 'file';
+  }
+
+  function onSelect(which: 'A' | 'B', value: string) {
+    const setSlot = which === 'A' ? setSlotA : setSlotB;
+    const fileRef = which === 'A' ? fileA : fileB;
+    setError(null);
+    if (value === 'you') setSlot({ kind: 'you', label: 'You' });
+    else if (value === 'upload') fileRef.current?.click();
+    else if (value.startsWith('v:')) {
+      const v = versions.find(x => x.id === value.slice(2));
+      if (v) setSlot({ kind: 'version', label: v.label, versionId: v.id, answers: v.answers });
+    }
+  }
+
+  async function onFile(which: 'A' | 'B', e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     setError(null);
     try {
       const payload = await readAnswersFile(file);
-      const r = computeCompatibility(answers, payload.answers);
-      if (r.sharedCount === 0) {
-        setResult(null);
-        setError('No overlapping answered questions yet. Answer more of the same categories (or ask them to) and try again.');
-        return;
-      }
-      setResult(r);
+      const label = file.name.replace(/\.json$/i, '');
+      (which === 'A' ? setSlotA : setSlotB)({ kind: 'file', label, answers: payload.answers });
     } catch (err) {
-      setResult(null);
       setError(err instanceof Error ? err.message : 'Could not read that file.');
     }
+  }
+
+  const labelA = slotA?.label ?? 'A';
+  const labelB = slotB?.label ?? 'B';
+
+  function Selector({ which, slot }: { which: 'A' | 'B'; slot: Slot | null }) {
+    const ref = which === 'A' ? fileA : fileB;
+    return (
+      <div style={{ flex: 1, minWidth: 200 }}>
+        <div className="kicker" style={{ fontSize: 11, marginBottom: 6 }}>{which === 'A' ? 'Profile A' : 'Profile B'}</div>
+        <select
+          className="ss-sel"
+          value={selectValue(slot)}
+          onChange={e => onSelect(which, e.target.value)}
+          style={{ width: '100%' }}
+          aria-label={`Profile ${which}`}
+        >
+          <option value="" disabled>Choose a profile…</option>
+          <option value="you">You (current answers)</option>
+          {versions.map(v => <option key={v.id} value={`v:${v.id}`}>{v.label}</option>)}
+          {slot?.kind === 'file' && <option value="file">{slot.label}</option>}
+          <option value="upload">Upload a file…</option>
+        </select>
+        <input ref={ref} type="file" accept="application/json,.json" onChange={e => onFile(which, e)} style={{ display: 'none' }} />
+      </div>
+    );
   }
 
   return (
     <section aria-label="Compatibility" className="ss-card" style={{ padding: '26px 28px' }}>
       <div className="kicker">Two profiles</div>
-      <h2 style={{ fontSize: 30, margin: '6px 0 6px' }}>Compare With Someone</h2>
+      <h2 style={{ fontSize: 30, margin: '6px 0 6px' }}>Compare Two Profiles</h2>
       <p style={{ fontSize: 14.5, lineHeight: 1.6, color: 'var(--ink-2)', margin: '0 0 18px', maxWidth: 620 }}>
-        Have a friend or partner take Selfscape and download their answers file, then load it here to see
-        how your outlooks, values, and preferences line up. Their file is read in your browser only — nothing
-        is uploaded or stored.
+        See how any two profiles line up — yourself, a saved version, or someone else’s downloaded answers
+        file. Everything is compared in your browser; nothing is uploaded or stored.
       </p>
 
-      <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleFile} style={{ display: 'none' }} />
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 18 }}>
+        <Selector which="A" slot={slotA} />
+        <div style={{ fontSize: 20, color: 'var(--ink-faint)', paddingBottom: 6 }}>×</div>
+        <Selector which="B" slot={slotB} />
+      </div>
 
-      {!result ? (
-        <>
-          <button className="ss-cta ss-cta-primary" onClick={() => fileRef.current?.click()}>
-            Load their answers file →
-          </button>
-          {error && <p style={{ fontSize: 13, color: 'var(--no)', marginTop: 12 }}>{error}</p>}
-        </>
-      ) : (
+      {error && <p style={{ fontSize: 13, color: 'var(--no)', marginBottom: 12 }}>{error}</p>}
+
+      {!answersA || !answersB ? (
+        <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>Pick a profile for both A and B to see how they compare.</p>
+      ) : result && result.sharedCount === 0 ? (
+        <p style={{ fontSize: 13, color: 'var(--no)' }}>
+          These two profiles have no overlapping answered questions. They need to answer some of the same
+          categories before they can be compared.
+        </p>
+      ) : result ? (
         <div>
           {/* Overall */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
             <div style={{ textAlign: 'center', minWidth: 130 }}>
               <div className="font-display" style={{ fontSize: 56, lineHeight: 1, color: 'var(--gold-deep)' }}>{result.overall}%</div>
               <div style={{ fontSize: 13, color: 'var(--ink-muted)', marginTop: 4 }}>{verdict(result.overall)}</div>
             </div>
-            <div style={{ flex: 1, minWidth: 220 }}>
-              <input
-                className="ss-input"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                aria-label="Name for the other profile"
-                style={{ maxWidth: 260, marginBottom: 8 }}
-              />
-              <p style={{ fontSize: 13, color: 'var(--ink-muted)', margin: 0, lineHeight: 1.5 }}>
-                Overall agreement across <strong>{result.sharedCount}</strong> questions you both answered.
-              </p>
-            </div>
+            <p style={{ flex: 1, minWidth: 200, fontSize: 13.5, color: 'var(--ink-muted)', margin: 0, lineHeight: 1.5 }}>
+              <strong>{labelA}</strong> and <strong>{labelB}</strong> agree across{' '}
+              <strong>{result.sharedCount}</strong> questions they both answered.
+            </p>
           </div>
 
           {/* Per-category bars */}
@@ -103,7 +160,7 @@ export function CompatibilityPanel({ answers }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 16 }}>
             {result.topAgreements.length > 0 && (
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--yes)', marginBottom: 8, letterSpacing: '.03em' }}>WHERE YOU ALIGN</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--yes)', marginBottom: 8, letterSpacing: '.03em' }}>WHERE THEY ALIGN</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {result.topAgreements.map(s => (
                     <div key={s.id} style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--ink-3)' }}>
@@ -115,13 +172,13 @@ export function CompatibilityPanel({ answers }: Props) {
             )}
             {result.topClashes.length > 0 && (
               <div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--no)', marginBottom: 8, letterSpacing: '.03em' }}>WHERE YOU DIFFER</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--no)', marginBottom: 8, letterSpacing: '.03em' }}>WHERE THEY DIFFER</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {result.topClashes.map(s => (
                     <div key={s.id} style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--ink-3)' }}>
                       “{s.text}” <span style={{ color: 'var(--ink-faint)', fontSize: 11 }}>· {s.categoryLabel}</span>
                       <div style={{ fontSize: 11.5, color: 'var(--ink-muted)', marginTop: 2 }}>
-                        You: {ANSWER_LABELS[s.you]} · {name || 'Them'}: {ANSWER_LABELS[s.them]}
+                        {labelA}: {ANSWER_LABELS[s.you]} · {labelB}: {ANSWER_LABELS[s.them]}
                       </div>
                     </div>
                   ))}
@@ -129,13 +186,8 @@ export function CompatibilityPanel({ answers }: Props) {
               </div>
             )}
           </div>
-
-          <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
-            <button className="ss-cta ss-cta-secondary" onClick={() => fileRef.current?.click()}>Compare another</button>
-            <button className="ss-topbtn" onClick={() => { setResult(null); setError(null); }}>Clear</button>
-          </div>
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
