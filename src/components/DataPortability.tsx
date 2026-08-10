@@ -9,6 +9,7 @@ import {
   copyToClipboard,
 } from '../export/profile';
 import { shareUrl } from '../engine/shareCode';
+import { PROFILES_ENABLED, createProfile, cloudShareUrl } from '../services/backend';
 
 interface Props {
   persona: Persona;
@@ -16,7 +17,7 @@ interface Props {
 }
 
 export function DataPortability({ persona, result }: Props) {
-  const { answers, refineAnswers, birthdate, saveVersion, versions } = useStore();
+  const { answers, refineAnswers, birthdate, saveVersion, versions, email } = useStore();
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -26,6 +27,26 @@ export function DataPortability({ persona, result }: Props) {
     if (ok) {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2400);
+    }
+  }
+
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudLink, setCloudLink] = useState<string | null>(null);
+  const [cloudErr, setCloudErr] = useState<string | null>(null);
+
+  async function handleCloudSave() {
+    setCloudBusy(true);
+    setCloudErr(null);
+    try {
+      const label = persona.archetype.name;
+      const { id } = await createProfile(answers, label, email);
+      const url = cloudShareUrl(id);
+      setCloudLink(url);
+      await copyToClipboard(url);
+    } catch (e) {
+      setCloudErr(e instanceof Error ? e.message : 'Could not save to cloud.');
+    } finally {
+      setCloudBusy(false);
     }
   }
 
@@ -102,6 +123,14 @@ export function DataPortability({ persona, result }: Props) {
           <button className="ss-cta ss-cta-primary" onClick={handleCopyLink}>
             {linkCopied ? 'Link copied ✓' : 'Copy my share link'}
           </button>
+          {PROFILES_ENABLED && (
+            <>
+              <button className="ss-cta ss-cta-secondary" onClick={handleCloudSave} disabled={cloudBusy}>
+                {cloudBusy ? 'Saving…' : cloudLink ? 'Short link copied ✓' : 'Save to cloud for a short link'}
+              </button>
+              {cloudErr && <p style={{ fontSize: 12, color: 'var(--no)', margin: 0 }}>{cloudErr}</p>}
+            </>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

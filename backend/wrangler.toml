@@ -1,0 +1,12 @@
+name = "selfscape-profiles"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# D1 database binding. Create it once with:
+#   npx wrangler d1 create selfscape-profiles
+# then paste the printed database_id below and apply the schema:
+#   npx wrangler d1 execute selfscape-profiles --file=./schema.sql --remote
+[[d1_databases]]
+binding = "DB"
+database_name = "selfscape-profiles"
+database_id = "REPLACE_WITH_DATABASE_ID"

@@ -33,6 +33,9 @@ jobs:
           # Set repo variable OPENAI_PROXY_URL to your Cloudflare Worker URL to
           # enable the shared key. Left blank -> visitors bring their own key.
           VITE_OPENAI_PROXY_URL: ${{ vars.OPENAI_PROXY_URL }}
+          # Set repo variable PROFILE_API_URL to the profiles Worker URL to enable
+          # cloud save / short share links / accounts. Left blank -> local only.
+          VITE_PROFILE_API_URL: ${{ vars.PROFILE_API_URL }}
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:

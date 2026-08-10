@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore, isValidEmail } from '../store/useStore';
 import { readAnswersFile } from '../export/profile';
 import { VersionHistory } from '../components/VersionHistory';
+import { CloudProfiles } from '../components/CloudProfiles';
 import { CategorySelector } from '../components/CategorySelector';
 import { coreAnsweredCount, coreSelectedTotal } from '../data/categories';
 import { Disclaimer } from '../components/Disclaimer';
@@ -253,6 +254,9 @@ export default function Landing() {
 
       {/* Saved versions */}
       <VersionHistory onLoad={() => navigate('/results')} />
+
+      {/* Cloud profiles (only when a backend is configured) */}
+      <CloudProfiles />
 
       {/* Restore from a saved answers file */}
       <div style={{ textAlign: 'center', marginTop: 18 }}>
