@@ -20,6 +20,8 @@ import { StoryStudio } from '../components/StoryStudio';
 import { TemperamentPanel, HumorPanel, FaithPanel } from '../components/CharacterPanels';
 import { PartyMatcher } from '../components/PartyMatcher';
 import { DataPortability } from '../components/DataPortability';
+import { OptionalPanels } from '../components/OptionalPanels';
+import { CompatibilityPanel } from '../components/CompatibilityPanel';
 import { PersonaChats } from '../components/PersonaChats';
 import { Disclaimer } from '../components/Disclaimer';
 import { toImage } from '../export/toImage';
@@ -194,7 +196,11 @@ export default function Results() {
             lowConfidence={(result.scores['economicAxis']?.confidence ?? 0) < 0.3 || (result.scores['socialAxis']?.confidence ?? 0) < 0.3}
           />
 
+          <OptionalPanels answers={answers} />
+
           <DataPortability persona={persona} result={result} />
+
+          <CompatibilityPanel answers={answers} />
 
           <PersonaChats persona={persona} result={result} answers={answers} />
         </div>
