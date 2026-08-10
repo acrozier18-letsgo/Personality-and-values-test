@@ -4,6 +4,8 @@
 // GET); email is optional and only used to let someone list their own profiles.
 
 const ALLOWED_ORIGINS = [
+  'https://theselfscape.com',
+  'https://www.theselfscape.com',
   'https://acrozier18-letsgo.github.io',
   'http://localhost:5173',
   'http://localhost:4173',

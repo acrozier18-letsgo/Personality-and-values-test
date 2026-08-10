@@ -4,6 +4,8 @@
 // rate-limits per IP (images more strictly than chat).
 
 const ALLOWED_ORIGINS = [
+  'https://theselfscape.com',
+  'https://www.theselfscape.com',
   'https://acrozier18-letsgo.github.io',
   'http://localhost:5173',
   'http://localhost:4173',
