@@ -8,6 +8,7 @@ import {
   buildMemoryMarkdown,
   copyToClipboard,
 } from '../export/profile';
+import { shareUrl } from '../engine/shareCode';
 
 interface Props {
   persona: Persona;
@@ -18,6 +19,15 @@ export function DataPortability({ persona, result }: Props) {
   const { answers, refineAnswers, birthdate, saveVersion, versions } = useStore();
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  async function handleCopyLink() {
+    const ok = await copyToClipboard(shareUrl(answers));
+    if (ok) {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2400);
+    }
+  }
 
   function handleSaveVersion() {
     const suggested = `Version ${versions.length + 1} · ${new Date().toLocaleDateString()}`;
@@ -80,6 +90,17 @@ export function DataPortability({ persona, result }: Props) {
           </p>
           <button className="ss-cta ss-cta-secondary" onClick={handleDownloadAnswers}>
             Download my answers
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="kicker" style={{ fontSize: 12 }}>Share a link</div>
+          <p style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink-3)', margin: 0, minHeight: 58 }}>
+            A link containing your profile — send it to a friend or partner and they can see how you two
+            compare. No account needed; the profile rides in the link itself.
+          </p>
+          <button className="ss-cta ss-cta-primary" onClick={handleCopyLink}>
+            {linkCopied ? 'Link copied ✓' : 'Copy my share link'}
           </button>
         </div>
 

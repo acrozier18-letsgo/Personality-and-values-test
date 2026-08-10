@@ -17,6 +17,8 @@ interface Slot {
 
 interface Props {
   answers: Record<string, Answer>;
+  /** Preset the "other" side (e.g. a profile opened from a share link). */
+  initialOther?: { label: string; answers: Record<string, Answer> };
 }
 
 function verdict(pct: number): string {
@@ -27,12 +29,14 @@ function verdict(pct: number): string {
   return 'Opposites';
 }
 
-export function CompatibilityPanel({ answers }: Props) {
+export function CompatibilityPanel({ answers, initialOther }: Props) {
   const versions = useStore(s => s.versions);
   const apiKey = useStore(s => s.apiKey);
   const setApiKey = useStore(s => s.setApiKey);
   const [slotA, setSlotA] = useState<Slot | null>({ kind: 'you', label: 'You' });
-  const [slotB, setSlotB] = useState<Slot | null>(null);
+  const [slotB, setSlotB] = useState<Slot | null>(
+    initialOther ? { kind: 'file', label: initialOther.label, answers: initialOther.answers } : null,
+  );
   const [error, setError] = useState<string | null>(null);
   const fileA = useRef<HTMLInputElement>(null);
   const fileB = useRef<HTMLInputElement>(null);
