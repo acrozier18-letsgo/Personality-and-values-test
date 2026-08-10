@@ -58,6 +58,47 @@ export async function chatWithPersona(
   return resp.choices[0].message.content?.trim() ?? '…';
 }
 
+// ── Compatibility reading ─────────────────────────────────────────────────────
+
+import type { CompatibilityResult } from '../engine/compatibility';
+import { ANSWER_LABELS } from '../engine/scoring';
+
+/** A warm, even-handed narrative of how two profiles mesh, from their overlap. */
+export async function generateCompatibilityReading(
+  apiKey: string,
+  result: CompatibilityResult,
+  labelA: string,
+  labelB: string,
+): Promise<string> {
+  const client = await getClient(apiKey);
+  const cats = result.categories.map((c) => `${c.label} ${c.pct}%`).join(', ');
+  const aligns = result.topAgreements.map((s) => `- "${s.text}" (${s.categoryLabel})`).join('\n') || '(none notable)';
+  const clashes = result.topClashes
+    .map((s) => `- "${s.text}" — ${labelA}: ${ANSWER_LABELS[s.you]}, ${labelB}: ${ANSWER_LABELS[s.them]} (${s.categoryLabel})`)
+    .join('\n') || '(none notable)';
+
+  const prompt = `You are a warm, perceptive writer helping two people understand how they mesh. They each took a self-reflection questionnaire (Selfscape). This is for fun and reflection — never clinical, never a verdict on whether they "should" be together.
+
+Overall agreement: ${result.overall}% across ${result.sharedCount} shared questions.
+Agreement by area: ${cats}
+
+Where they strongly align:
+${aligns}
+
+Where they most differ:
+${clashes}
+
+Write a short reading (2–3 tight paragraphs) of how "${labelA}" and "${labelB}" are likely to get along — where they naturally complement each other, where friction could show up, and one light, constructive suggestion for navigating their differences. Refer to them as "${labelA}" and "${labelB}". Be warm, specific, and even-handed; interpret the pattern rather than just restating numbers. Don't moralise about any political, religious, or lifestyle differences — treat them as neutral facts about two people.`;
+
+  const resp = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.85,
+    max_tokens: 600,
+  });
+  return resp.choices[0].message.content?.trim() ?? 'Could not generate a reading. Please try again.';
+}
+
 export async function generateExample(apiKey: string, statement: string): Promise<string> {
   const client = await getClient(apiKey);
 

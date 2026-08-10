@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { readAnswersFile } from '../export/profile';
 import { computeCompatibility } from '../engine/compatibility';
 import type { CompatibilityResult } from '../engine/compatibility';
+import { generateCompatibilityReading, SHARED_AI } from '../services/openai';
 import { ANSWER_LABELS } from '../engine/scoring';
 import type { Answer } from '../engine/scoring';
 
@@ -27,11 +29,20 @@ function verdict(pct: number): string {
 
 export function CompatibilityPanel({ answers }: Props) {
   const versions = useStore(s => s.versions);
+  const apiKey = useStore(s => s.apiKey);
+  const setApiKey = useStore(s => s.setApiKey);
   const [slotA, setSlotA] = useState<Slot | null>({ kind: 'you', label: 'You' });
   const [slotB, setSlotB] = useState<Slot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileA = useRef<HTMLInputElement>(null);
   const fileB = useRef<HTMLInputElement>(null);
+
+  // AI reading of the pairing
+  const [reading, setReading] = useState<string | null>(null);
+  const [loadingReading, setLoadingReading] = useState(false);
+  const [readingError, setReadingError] = useState<string | null>(null);
+  const [showKey, setShowKey] = useState(false);
+  const canGenerate = Boolean(apiKey.trim()) || SHARED_AI;
 
   const resolve = (slot: Slot | null): Record<string, Answer> | null =>
     !slot ? null : slot.kind === 'you' ? answers : slot.answers ?? null;
@@ -55,6 +66,8 @@ export function CompatibilityPanel({ answers }: Props) {
     const setSlot = which === 'A' ? setSlotA : setSlotB;
     const fileRef = which === 'A' ? fileA : fileB;
     setError(null);
+    setReading(null);
+    setReadingError(null);
     if (value === 'you') setSlot({ kind: 'you', label: 'You' });
     else if (value === 'upload') fileRef.current?.click();
     else if (value.startsWith('v:')) {
@@ -68,6 +81,8 @@ export function CompatibilityPanel({ answers }: Props) {
     e.target.value = '';
     if (!file) return;
     setError(null);
+    setReading(null);
+    setReadingError(null);
     try {
       const payload = await readAnswersFile(file);
       const label = file.name.replace(/\.json$/i, '');
@@ -79,6 +94,26 @@ export function CompatibilityPanel({ answers }: Props) {
 
   const labelA = slotA?.label ?? 'A';
   const labelB = slotB?.label ?? 'B';
+
+  async function generateReading() {
+    if (!result || !canGenerate || loadingReading) return;
+    if (result.sharedCount === 0) return;
+    setLoadingReading(true);
+    setReadingError(null);
+    try {
+      const text = await generateCompatibilityReading(apiKey.trim(), result, labelA, labelB);
+      setReading(text);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Unknown error';
+      setReadingError(
+        msg.includes('401') ? 'Invalid API key — check and try again.'
+        : msg.includes('429') ? 'Rate limited — wait a moment and try again.'
+        : `Error: ${msg}`,
+      );
+    } finally {
+      setLoadingReading(false);
+    }
+  }
 
   function Selector({ which, slot }: { which: 'A' | 'B'; slot: Slot | null }) {
     const ref = which === 'A' ? fileA : fileB;
@@ -185,6 +220,50 @@ export function CompatibilityPanel({ answers }: Props) {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* AI reading of the pairing */}
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--card-border)' }}>
+            {reading ? (
+              <div>
+                <div className="kicker" style={{ fontSize: 12, marginBottom: 8 }}>The reading</div>
+                <div style={{ fontSize: 14.5, lineHeight: 1.7, color: 'var(--ink-2)', whiteSpace: 'pre-wrap' }}>{reading}</div>
+                <button className="ss-topbtn" style={{ fontSize: 12, marginTop: 12 }} onClick={generateReading} disabled={loadingReading}>
+                  {loadingReading ? 'Regenerating…' : 'Regenerate reading'}
+                </button>
+              </div>
+            ) : canGenerate ? (
+              <div>
+                <p style={{ fontSize: 13.5, color: 'var(--ink-muted)', margin: '0 0 12px', lineHeight: 1.55 }}>
+                  Want a written take on how {labelA} and {labelB} mesh — strengths, friction points, and a
+                  tip? Generate an AI reading from your overlapping answers.
+                </p>
+                <button className="ss-cta ss-cta-primary" onClick={generateReading} disabled={loadingReading}>
+                  {loadingReading ? (<><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Writing the reading…</>) : 'Generate an AI reading →'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ fontSize: 13, color: 'var(--ink-muted)', margin: 0 }}>
+                  Enter your OpenAI API key to generate a written compatibility reading. It’s stored only in your browser.
+                </p>
+                <div style={{ position: 'relative', maxWidth: 360 }}>
+                  <input
+                    className="ss-input"
+                    type={showKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder="sk-…"
+                    aria-label="OpenAI API key"
+                    style={{ paddingRight: 40, width: '100%' }}
+                  />
+                  <button type="button" onClick={() => setShowKey(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', background: 'none', border: 'none', cursor: 'pointer' }} aria-label={showKey ? 'Hide key' : 'Show key'}>
+                    {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+            {readingError && <p style={{ fontSize: 13, color: 'var(--no)', marginTop: 10 }}>{readingError}</p>}
           </div>
         </div>
       ) : null}
