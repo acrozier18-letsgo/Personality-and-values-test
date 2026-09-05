@@ -38,6 +38,12 @@ export interface ImportPayload {
   answers: Record<string, Answer>;
   refineAnswers: Record<string, number>;
   birthdate: string;
+  /**
+   * When the file was exported, in ms — used to date the snapshot on the growth
+   * timeline so an old backup lands at the right point in the arc. Undefined
+   * when the file carries no usable stamp.
+   */
+  exportedAt?: number;
 }
 
 const VALID_QUESTION_IDS = new Set([
@@ -103,7 +109,10 @@ export function parseAnswersFile(text: string): ImportPayload {
       ? obj.birthdate
       : '';
 
-  return { answers, refineAnswers, birthdate };
+  const stamp = typeof obj.exportedAt === 'string' ? Date.parse(obj.exportedAt) : NaN;
+  const exportedAt = Number.isFinite(stamp) ? stamp : undefined;
+
+  return { answers, refineAnswers, birthdate, exportedAt };
 }
 
 export function readAnswersFile(file: File): Promise<ImportPayload> {

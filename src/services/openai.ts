@@ -99,6 +99,62 @@ Write a short reading (2–3 tight paragraphs) of how "${labelA}" and "${labelB}
   return resp.choices[0].message.content?.trim() ?? 'Could not generate a reading. Please try again.';
 }
 
+// ── Growth reading ────────────────────────────────────────────────────────────
+
+import type { GrowthResult } from '../engine/growth';
+import { movementPhrase } from '../engine/growth';
+
+/**
+ * A reflective narrative of how one person's portrait moved between two of their
+ * own snapshots. Deliberately non-clinical and non-judgemental: change here is
+ * neither progress nor decline, and the model is told so explicitly.
+ */
+export async function generateGrowthReading(
+  apiKey: string,
+  growth: GrowthResult,
+): Promise<string> {
+  const client = await getClient(apiKey);
+
+  const moved =
+    growth.movements
+      .slice(0, 8)
+      .map((t) => `- ${t.label}: ${t.from} → ${t.to} (${movementPhrase(t)})`)
+      .join('\n') || '(nothing moved past the noise floor)';
+  const steady =
+    growth.anchors.slice(0, 6).map((t) => `- ${t.label} (held around ${t.to})`).join('\n') ||
+    '(none)';
+  const flipped =
+    growth.changedStatements
+      .slice(0, 8)
+      .map((s) => `- "${s.text}" — was ${s.fromLabel}, now ${s.toLabel}`)
+      .join('\n') || '(none)';
+
+  const prompt = `You are a thoughtful writer helping someone read their own development over time. They took the same self-reflection questionnaire (Selfscape) more than once. You are comparing "${growth.from.label}" to "${growth.to.label}", ${growth.spanDays} days apart.
+
+Continuity: ${growth.continuity}% of the measured portrait stayed the same.
+
+Traits that moved:
+${moved}
+
+Traits that held steady:
+${steady}
+
+Individual statements they now answer differently:
+${flipped}
+
+Write a short reflection (2–3 tight paragraphs) on this person's arc: what the pattern of movement suggests about the season of life they may have been in, what their steady traits say about the parts of them that hold, and one open question worth sitting with.
+
+Rules: change is neither improvement nor decline — never congratulate or worry, never imply one version is better or healthier than the other. Do not diagnose, and do not offer clinical or medical interpretation. Address them as "you". Interpret the pattern rather than restating the numbers. Treat any political, religious or lifestyle movement as a neutral fact. If very little moved, say so plainly and make that interesting rather than padding it.`;
+
+  const resp = await client.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.85,
+    max_tokens: 600,
+  });
+  return resp.choices[0].message.content?.trim() ?? 'Could not generate a reading. Please try again.';
+}
+
 export async function generateExample(apiKey: string, statement: string): Promise<string> {
   const client = await getClient(apiKey);
 

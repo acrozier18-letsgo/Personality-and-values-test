@@ -15,6 +15,20 @@ export interface SavedVersion {
   birthdate: string;
   answers: Record<string, Answer>;
   refineAnswers: Record<string, number>;
+  /**
+   * When these answers were actually given, which is not always when the
+   * snapshot was created — an uploaded backup from two years ago is dated by
+   * its export stamp, and the user can correct it. Optional so versions saved
+   * before the growth timeline existed still load; read it via versionTakenAt.
+   */
+  takenAt?: number;
+  /** 'imported' marks a version restored from an uploaded answers file. */
+  source?: 'local' | 'imported';
+}
+
+/** When a saved version's answers were given, falling back to its save time. */
+export function versionTakenAt(v: SavedVersion): number {
+  return v.takenAt ?? v.createdAt;
 }
 
 function newId(): string {
@@ -86,6 +100,17 @@ interface StoreState {
   loadVersion: (id: string) => void;
   deleteVersion: (id: string) => void;
   renameVersion: (id: string, label: string) => void;
+  /**
+   * File an uploaded answers file as a point on the timeline WITHOUT disturbing
+   * the answers in progress. This is how a past profile joins the growth arc.
+   * Returns the new version's id.
+   */
+  addVersionFromImport: (
+    data: { answers: Record<string, Answer>; refineAnswers?: Record<string, number>; birthdate?: string },
+    opts?: { label?: string; takenAt?: number },
+  ) => string;
+  /** Correct when a snapshot's answers were actually given. */
+  setVersionDate: (id: string, takenAt: number) => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -172,20 +197,49 @@ export const useStore = create<StoreState>()(
         const id = newId();
         set((state) => {
           const count = countAnswered(state.answers);
+          const now = Date.now();
           const version: SavedVersion = {
             id,
             label: label?.trim() || `Version ${state.versions.length + 1}`,
             email: state.email,
-            createdAt: Date.now(),
+            createdAt: now,
             answeredCount: count,
             birthdate: state.birthdate,
             answers: { ...state.answers },
             refineAnswers: { ...state.refineAnswers },
+            takenAt: now,
+            source: 'local',
           };
           return { versions: [version, ...state.versions] };
         });
         return id;
       },
+
+      addVersionFromImport: (data, opts) => {
+        const id = newId();
+        set((state) => {
+          const now = Date.now();
+          const version: SavedVersion = {
+            id,
+            label: opts?.label?.trim() || `Imported ${new Date(opts?.takenAt ?? now).toLocaleDateString()}`,
+            email: state.email,
+            createdAt: now,
+            answeredCount: countAnswered(data.answers),
+            birthdate: data.birthdate || state.birthdate,
+            answers: { ...data.answers },
+            refineAnswers: { ...(data.refineAnswers ?? {}) },
+            takenAt: opts?.takenAt ?? now,
+            source: 'imported',
+          };
+          return { versions: [version, ...state.versions] };
+        });
+        return id;
+      },
+
+      setVersionDate: (id, takenAt) =>
+        set((state) => ({
+          versions: state.versions.map((x) => (x.id === id ? { ...x, takenAt } : x)),
+        })),
 
       loadVersion: (id) =>
         set((state) => {
@@ -215,7 +269,7 @@ export const useStore = create<StoreState>()(
     }),
     {
       name: 'selfscape-v1',
-      version: 2,
+      version: 3,
       // Keep the API key out of the persisted blob (and thus out of any export);
       // it is stored separately via saveApiKey and re-seeded on load.
       partialize: (state) => {
@@ -224,8 +278,16 @@ export const useStore = create<StoreState>()(
         return persisted;
       },
       // v2: answers moved from 'yes'|'no'|'skip' to a 5-point agree/disagree scale.
+      // v3: saved versions gained takenAt/source for the growth timeline.
       migrate: (persisted: unknown, version: number) => {
         const state = persisted as StoreState;
+        if (version < 3 && Array.isArray(state?.versions)) {
+          state.versions = state.versions.map((v) => ({
+            ...v,
+            takenAt: v.takenAt ?? v.createdAt,
+            source: v.source ?? 'local',
+          }));
+        }
         if (version < 2 && state?.answers) {
           const map: Record<string, Answer | undefined> = {
             yes: 'agree',
