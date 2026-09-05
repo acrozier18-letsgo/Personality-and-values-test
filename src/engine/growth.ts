@@ -16,10 +16,9 @@
 import type { Answer, DimensionScore } from './scoring';
 import { ANSWER_VALUES, ANSWER_LABELS, countAnswered, isAnswered, scoreAnswers } from './scoring';
 import { QUESTIONS } from '../data/questions';
-import { OPTIONAL_QUESTIONS } from '../data/optionalQuestions';
+import { ALL_QUESTIONS } from '../data/allQuestions';
 import { DIMENSIONS, DIMENSION_MAP } from '../data/dimensions';
 import type { DimensionGroup, DimensionKey, DimensionType } from '../data/dimensions';
-import { CATEGORY_MAP } from '../data/categories';
 import { euclideanDistance } from './similarity';
 
 /**
@@ -116,17 +115,6 @@ const DIMENSION_TYPES = Object.fromEntries(
   DIMENSIONS.map((d) => [d.key, d.type]),
 ) as Record<DimensionKey, DimensionType>;
 
-interface UnifiedQ {
-  id: string;
-  text: string;
-  categoryKey: string;
-}
-
-const ALL_Q: UnifiedQ[] = [
-  ...QUESTIONS.map((q) => ({ id: q.id, text: q.text, categoryKey: q.group })),
-  ...OPTIONAL_QUESTIONS.map((q) => ({ id: q.id, text: q.text, categoryKey: q.category })),
-];
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Re-score a snapshot's answers with the standard engine. */
@@ -158,7 +146,7 @@ export function statementChanges(
   to: Record<string, Answer>,
 ): StatementChange[] {
   const out: StatementChange[] = [];
-  for (const q of ALL_Q) {
+  for (const q of ALL_QUESTIONS) {
     const a = from[q.id];
     const b = to[q.id];
     if (!isAnswered(a) || !isAnswered(b)) continue;
@@ -167,7 +155,7 @@ export function statementChanges(
     out.push({
       id: q.id,
       text: q.text,
-      categoryLabel: CATEGORY_MAP[q.categoryKey]?.label ?? q.categoryKey,
+      categoryLabel: q.categoryLabel,
       from: a,
       to: b,
       fromLabel: ANSWER_LABELS[a],

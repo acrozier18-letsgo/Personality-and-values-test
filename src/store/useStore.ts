@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import type { Answer } from '../engine/scoring';
 import { isAnswered, countAnswered } from '../engine/scoring';
 import { DEFAULT_SELECTED_CATEGORIES } from '../data/categories';
+import { selectItems, DEFAULT_ROUND_SIZE } from '../engine/knowingMap';
+import type { Confidence, Prediction } from '../engine/knowingMap';
 import type { LLMPersonaResult, StoryResult } from '../services/openai';
 
 /** A saved snapshot of a completed (or in-progress) answer set, kept locally. */
@@ -29,6 +31,26 @@ export interface SavedVersion {
 /** When a saved version's answers were given, falling back to its save time. */
 export function versionTakenAt(v: SavedVersion): number {
   return v.takenAt ?? v.createdAt;
+}
+
+/**
+ * An in-progress or finished round of the Knowing Map.
+ *
+ * Only the selected statements' real answers are kept — never the subject's
+ * whole profile. Scoring needs nothing more, and a round shouldn't quietly
+ * leave someone else's complete answer set sitting in your browser.
+ */
+export interface KnowingSession {
+  /** Who is being predicted, e.g. "Sam" or "Sam's shared profile". */
+  subject: string;
+  /** Seeds item selection, so re-rendering never reshuffles the round. */
+  seed: string;
+  itemIds: string[];
+  actual: Record<string, Answer>;
+  predictions: Record<string, Prediction>;
+  cursor: number;
+  revealed: boolean;
+  startedAt: number;
 }
 
 function newId(): string {
@@ -111,6 +133,19 @@ interface StoreState {
   ) => string;
   /** Correct when a snapshot's answers were actually given. */
   setVersionDate: (id: string, takenAt: number) => void;
+
+  /** The active Knowing Map round, or null when none is in progress. */
+  knowing: KnowingSession | null;
+  /** Begin a round predicting `subject`, drawing statements they answered. */
+  startKnowing: (
+    subject: string,
+    subjectAnswers: Record<string, Answer>,
+    opts?: { size?: number; seed?: string },
+  ) => void;
+  predict: (id: string, answer: Answer, confidence: Confidence) => void;
+  goToPrediction: (index: number) => void;
+  revealKnowing: () => void;
+  clearKnowing: () => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -240,6 +275,60 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           versions: state.versions.map((x) => (x.id === id ? { ...x, takenAt } : x)),
         })),
+
+      knowing: null,
+
+      startKnowing: (subject, subjectAnswers, opts) => {
+        const seed = opts?.seed ?? newId();
+        const items = selectItems(subjectAnswers, opts?.size ?? DEFAULT_ROUND_SIZE, seed);
+        // Copy across only the answers this round will actually score.
+        const actual: Record<string, Answer> = {};
+        for (const q of items) {
+          const a = subjectAnswers[q.id];
+          if (isAnswered(a)) actual[q.id] = a;
+        }
+        set({
+          knowing: {
+            subject: subject.trim() || 'Your partner',
+            seed,
+            itemIds: items.map((q) => q.id),
+            actual,
+            predictions: {},
+            cursor: 0,
+            revealed: false,
+            startedAt: Date.now(),
+          },
+        });
+      },
+
+      predict: (id, answer, confidence) =>
+        set((state) =>
+          state.knowing
+            ? {
+                knowing: {
+                  ...state.knowing,
+                  predictions: { ...state.knowing.predictions, [id]: { answer, confidence } },
+                },
+              }
+            : {},
+        ),
+
+      goToPrediction: (index) =>
+        set((state) =>
+          state.knowing
+            ? {
+                knowing: {
+                  ...state.knowing,
+                  cursor: Math.max(0, Math.min(index, state.knowing.itemIds.length - 1)),
+                },
+              }
+            : {},
+        ),
+
+      revealKnowing: () =>
+        set((state) => (state.knowing ? { knowing: { ...state.knowing, revealed: true } } : {})),
+
+      clearKnowing: () => set({ knowing: null }),
 
       loadVersion: (id) =>
         set((state) => {

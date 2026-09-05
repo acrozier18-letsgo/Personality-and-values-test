@@ -4,16 +4,8 @@
 
 import type { Answer } from './scoring';
 import { ANSWER_VALUES, isAnswered } from './scoring';
-import { QUESTIONS } from '../data/questions';
-import { OPTIONAL_QUESTIONS } from '../data/optionalQuestions';
+import { ALL_QUESTIONS } from '../data/allQuestions';
 import { CATEGORY_MAP, ALL_CATEGORIES } from '../data/categories';
-
-interface UnifiedQ { id: string; text: string; categoryKey: string }
-
-const ALL_Q: UnifiedQ[] = [
-  ...QUESTIONS.map(q => ({ id: q.id, text: q.text, categoryKey: q.group })),
-  ...OPTIONAL_QUESTIONS.map(q => ({ id: q.id, text: q.text, categoryKey: q.category })),
-];
 
 /** 1.0 = identical answer, 0.0 = opposite extremes (−2..+2 scale, max distance 4). */
 export function itemAgreement(a: Answer, b: Answer): number {
@@ -52,7 +44,7 @@ export function computeCompatibility(
   const shared: StatementCompat[] = [];
   const byCat: Record<string, { sum: number; n: number }> = {};
 
-  for (const q of ALL_Q) {
+  for (const q of ALL_QUESTIONS) {
     const a = you[q.id];
     const b = them[q.id];
     if (!isAnswered(a) || !isAnswered(b)) continue;

@@ -23,6 +23,7 @@ import { DataPortability } from '../components/DataPortability';
 import { OptionalPanels } from '../components/OptionalPanels';
 import { CompatibilityPanel } from '../components/CompatibilityPanel';
 import { GrowthTimeline } from '../components/GrowthTimeline';
+import { KnowingMap } from '../components/KnowingMap';
 import { PersonaChats } from '../components/PersonaChats';
 import { Disclaimer } from '../components/Disclaimer';
 import { toImage } from '../export/toImage';
@@ -202,6 +203,8 @@ export default function Results() {
           <DataPortability persona={persona} result={result} />
 
           <GrowthTimeline answers={answers} />
+
+          <KnowingMap />
 
           <CompatibilityPanel answers={answers} />
 
