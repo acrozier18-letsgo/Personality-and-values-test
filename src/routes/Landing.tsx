@@ -11,6 +11,7 @@ import { ZodiacBadge } from '../components/ZodiacBadge';
 import { ChineseZodiacBadge } from '../components/ChineseZodiacBadge';
 import { Oculus } from '../components/Oculus';
 import { countAnswered, personaUnlockThreshold } from '../engine/scoring';
+import { SHARED_AI } from '../services/openai';
 import { getZodiacFromDate } from '../data/zodiac';
 import { getChineseZodiac } from '../data/chineseZodiac';
 
@@ -39,11 +40,60 @@ function toISO(month: number, day: number, year: number): string {
 }
 
 const EXPECTATIONS = [
-  'Over two hundred statements spanning personality, values, ethics, politics, philosophy, humor & faith.',
-  'Answer as many or as few as you like — the portrait sharpens with more answers.',
-  'Your progress is saved automatically in your browser.',
-  'Sign in with your email to save multiple versions of your results and revisit them over time.',
-  'Your email and answers stay on your device — nothing is sent to a server.',
+  'Two hundred and thirty-one scored statements across eight domains, plus seven optional packs you can opt into or skip.',
+  'Answer as many or as few as you like — the portrait sharpens with every answer, and unlocks at 75% of the core questions.',
+  'Your progress saves automatically in this browser, and your email simply labels the versions you save.',
+  'Your answers live on your device. The optional AI features send a summary of your profile to OpenAI only when you choose to use them.',
+];
+
+/**
+ * The homepage's inventory of what Selfscape actually does. Counts come from
+ * the data files (see the dimension, figure, career and country tables) and
+ * should be updated alongside them rather than rounded.
+ */
+const FEATURES: { title: string; blurb: string; badge?: string }[] = [
+  {
+    title: 'The assessment',
+    blurb:
+      '231 scored statements across personality, values, morals, politics, philosophy, ontology, humor and faith, measuring 45 distinct dimensions. Seven optional packs add 225 more — parenting, partnership, intimacy, hobbies, interests, education and travel.',
+  },
+  {
+    title: 'Your portrait',
+    blurb:
+      'One of 14 archetypes, your outlook distilled into a single sentence, and a radar across all 45 dimensions — with a political compass, philosophical axes, your temperament, humor profile, and where you sit on faith and spirituality.',
+  },
+  {
+    title: 'Echoes and affinities',
+    blurb:
+      'The historical figures whose outlook rhymes with yours, the career families that fit, the countries whose prevailing values line up, and where you land among 47 political parties across 9 countries.',
+  },
+  {
+    title: 'Drawn and written by AI',
+    blurb:
+      'A generated persona name and an illustrated portrait, a short story starring it, and a worked example for any statement you find ambiguous. Then talk to a version of yourself built from your own answers — or to your exact opposite.',
+  },
+  {
+    title: 'Compare two profiles',
+    blurb:
+      'Measure yourself against anyone else who has taken it, across every statement you both answered: broken down by domain, where you most align, where you clash, and a written reading of how the two of you are likely to mesh.',
+  },
+  {
+    title: 'The Knowing Map',
+    badge: 'New',
+    blurb:
+      'Answer a round of statements as you think someone else would, saying how sure you are each time. Scored against their real answers, it finds the quadrant nobody reaches alone: the places you were confident, and wrong.',
+  },
+  {
+    title: 'Your Arc',
+    badge: 'New',
+    blurb:
+      'Upload answer files from months or years ago and watch the portrait move — what shifted, what held, and the statements you now answer differently.',
+  },
+  {
+    title: 'Yours to keep',
+    blurb:
+      'Download your answers as a file, save named versions to revisit, share a link that carries your whole profile, export a card or a PDF — or a written profile to paste into an AI assistant’s memory.',
+  },
 ];
 
 export default function Landing() {
@@ -114,7 +164,11 @@ export default function Landing() {
   const dayCount = daysInMonth(month, year);
 
   return (
-    <div style={{ maxWidth: 940, margin: '0 auto', padding: '26px 24px 72px' }}>
+    // The hero's Oculus glow deliberately bleeds wider than the column; `clip`
+    // stops that from scrolling the page sideways on narrow screens without
+    // creating a scroll container the way `hidden` would, so the glow still
+    // spills vertically as intended.
+    <div style={{ maxWidth: 940, margin: '0 auto', padding: '26px 24px 72px', overflowX: 'clip' }}>
       {/* Hero — Oculus */}
       <div style={{ position: 'relative', textAlign: 'center', padding: '64px 12px 30px' }}>
         <Oculus variant="hero" />
@@ -124,12 +178,54 @@ export default function Landing() {
             Selfscape
           </h1>
           <div style={{ width: 66, height: 1, background: 'var(--gold)', margin: '24px auto' }} />
-          <p style={{ fontSize: 18, lineHeight: 1.65, color: 'var(--ink-2)', maxWidth: 560, margin: '0 auto' }}>
-            Map your philosophy, values, and personality across more than two hundred questions — then
-            receive a considered portrait of who you are.
+          <p style={{ fontSize: 18, lineHeight: 1.65, color: 'var(--ink-2)', maxWidth: 580, margin: '0 auto' }}>
+            Map your personality, values, morals, politics, philosophy, humor and faith — then receive a
+            considered portrait of who you are, how you have changed, and how well you know the people
+            closest to you.
           </p>
         </div>
       </div>
+
+      {/* What Selfscape does — the full inventory, before asking for anything */}
+      <section aria-label="What's inside" className="ss-card" style={{ maxWidth: 640, margin: '20px auto 0', padding: '28px 30px' }}>
+        <div className="kicker">What&apos;s inside</div>
+        <h2 className="font-display" style={{ fontSize: 28, margin: '6px 0 8px' }}>
+          A portrait, and everything around it
+        </h2>
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--ink-2)', margin: '0 0 20px' }}>
+          Selfscape starts as a questionnaire and ends up as a record: of how you think now, how that has
+          moved over time, and where it meets the people you share a life with.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {FEATURES.map((f) => (
+            <div key={f.title} style={{ borderTop: '1px solid var(--divider)', paddingTop: 13 }}>
+              <h3
+                className="font-display"
+                style={{ fontSize: 18, color: 'var(--ink)', margin: '0 0 5px', display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}
+              >
+                {f.title}
+                {f.badge && (
+                  <span
+                    className="ss-chip"
+                    style={{ fontSize: 10, padding: '1px 8px', letterSpacing: '.08em', textTransform: 'uppercase' }}
+                  >
+                    {f.badge}
+                  </span>
+                )}
+              </h3>
+              <p style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink-3)', margin: 0 }}>{f.blurb}</p>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontSize: 12.5, color: 'var(--ink-muted-2)', margin: '22px 0 0', lineHeight: 1.55 }}>
+          The portrait and everything built on it unlock once you have answered 75% of the core
+          questions. {SHARED_AI
+            ? 'The AI features are ready to use — no key of your own needed.'
+            : 'The AI features need your own OpenAI key, which you can add on the results page.'}
+        </p>
+      </section>
 
       {/* Sign up — email */}
       <div className="ss-card" style={{ maxWidth: 640, margin: '20px auto 0', padding: '28px 30px' }}>
@@ -158,9 +254,9 @@ export default function Landing() {
         )}
       </div>
 
-      {/* What to expect */}
+      {/* How it works — practicalities, distinct from the capability list above */}
       <div className="ss-card" style={{ maxWidth: 640, margin: '20px auto 0', padding: '28px 30px' }}>
-        <div className="kicker" style={{ marginBottom: 14 }}>What to expect</div>
+        <div className="kicker" style={{ marginBottom: 14 }}>How it works</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           {EXPECTATIONS.map((e, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, fontSize: 15, lineHeight: 1.5, color: 'var(--ink-3)' }}>
